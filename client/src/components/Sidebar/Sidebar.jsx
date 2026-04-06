@@ -3,7 +3,15 @@ import './Sidebar.css';
 
 const NAV = [
   { id: 'dashboard',     icon: '◈',  label: 'Dashboard' },
-  { id: 'accounts',      icon: '🏛',  label: 'Accounts' },
+  { id: 'accounts',      icon: (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M2 8L10 2l8 6H2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+      <rect x="4" y="9" width="2" height="6" rx="0.4" fill="currentColor"/>
+      <rect x="9" y="9" width="2" height="6" rx="0.4" fill="currentColor"/>
+      <rect x="14" y="9" width="2" height="6" rx="0.4" fill="currentColor"/>
+      <rect x="2" y="16" width="16" height="1.5" rx="0.75" fill="currentColor"/>
+    </svg>
+  ), label: 'Accounts' },
   { id: 'income',        icon: '↑',  label: 'Income' },
   { id: 'expenses',      icon: '↓',  label: 'Expenses' },
   { id: 'subscriptions', icon: '⟳',  label: 'Subscriptions' },

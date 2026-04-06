@@ -18,7 +18,7 @@
 .ai-quick-btn:hover:not(:disabled) {
   transform: translateY(-1px);
   border-color: var(--border-hover);
-  background: rgba(212, 175, 55, 0.09);
+  background: rgba(var(--accent-rgb), 0.09);
   color: var(--text-primary);
 }
 
@@ -62,7 +62,6 @@
   flex-shrink: 0;
   background: var(--accent-gradient);
   color: #0b0906;
-  box-shadow: 0 14px 28px rgba(141, 106, 33, 0.18);
 }
 
 .ai-bubble-avatar-user {
@@ -82,8 +81,8 @@
 }
 
 .ai-bubble-user .ai-bubble-text {
-  background: rgba(212, 175, 55, 0.1);
-  border-color: rgba(212, 175, 55, 0.16);
+  background: rgba(var(--accent-rgb), 0.1);
+  border-color: rgba(var(--accent-rgb), 0.16);
 }
 
 .ai-typing {
@@ -108,7 +107,7 @@
   align-items: flex-end;
   gap: 12px;
   padding: 18px 20px 20px;
-  border-top: 1px solid rgba(212, 175, 55, 0.08);
+  border-top: 1px solid rgba(var(--accent-rgb), 0.08);
   background: rgba(255, 255, 255, 0.02);
 }
 

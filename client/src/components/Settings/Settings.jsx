@@ -2,17 +2,27 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../../utils/api.js';
 import { useCurrency } from '../../hooks/useCurrency.jsx';
 import { CURRENCIES } from '../../utils/categories.js';
+import { ACCENT_THEMES, THEME_STORAGE_KEY, applyAccentTheme } from '../../utils/themes.js';
+import { useTheme } from '../../hooks/useTheme.jsx';
 
 const RESET_CONFIRMATION = 'RESET-ALL-DATA';
 
 export default function Settings() {
   const { setSymbol, setCode } = useCurrency();
+  const { setThemeId } = useTheme();
   const [settings, setSettings] = useState({ currency:'BRL', currency_symbol:'R$' });
   const [saving, setSaving]     = useState(false);
   const [saved, setSaved]       = useState(false);
   const [clearing, setClearing] = useState(false);
-
   const [showConfirm, setShowConfirm] = useState(false);
+  const [accentTheme, setAccentTheme] = useState(() => localStorage.getItem(THEME_STORAGE_KEY) ?? 'gold');
+
+  const handleThemeChange = (id) => {
+    setAccentTheme(id);
+    applyAccentTheme(id);
+    localStorage.setItem(THEME_STORAGE_KEY, id);
+    setThemeId(id);
+  };
 
   const clearDatabase = async () => {
     setShowConfirm(false);
@@ -117,6 +127,58 @@ export default function Settings() {
             <span className="badge badge-green">✓ Local-First</span>
             <span className="badge badge-muted">No Account Required</span>
             <span className="badge badge-muted">AI Uses Internet</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{maxWidth:560, marginTop:20}}>
+        <div className="card-header">
+          <span className="card-title">🎨 Appearance</span>
+        </div>
+        <div className="card-body" style={{display:'flex', flexDirection:'column', gap:16}}>
+          <div className="form-group">
+            <label className="form-label">Accent Color</label>
+            <div style={{fontSize:'0.78rem', color:'var(--text-muted)', marginBottom:12}}>
+              Choose an accent color for the interface — applied instantly
+            </div>
+            <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
+              {ACCENT_THEMES.map(theme => {
+                const active = accentTheme === theme.id;
+                return (
+                  <button
+                    key={theme.id}
+                    title={theme.name}
+                    onClick={() => handleThemeChange(theme.id)}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: '50%',
+                      background: `linear-gradient(135deg, ${theme.color3} 0%, ${theme.color1} 55%, ${theme.color2} 100%)`,
+                      border: 'none',
+                      outline: 'none',
+                      boxShadow: active
+                        ? `0 0 0 3px ${theme.color1}, 0 0 0 5px rgba(255,255,255,0.14)`
+                        : '0 2px 6px rgba(0,0,0,0.35)',
+                      cursor: 'pointer',
+                      transition: 'transform 180ms, box-shadow 180ms',
+                      transform: active ? 'scale(1.18)' : 'scale(1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#0b0906',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {active && '✓'}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{marginTop:10, fontSize:'0.82rem', color:'var(--text-accent)', fontWeight:600, letterSpacing:'0.04em'}}>
+              {ACCENT_THEMES.find(t => t.id === accentTheme)?.name ?? 'Gold'}
+            </div>
           </div>
         </div>
       </div>

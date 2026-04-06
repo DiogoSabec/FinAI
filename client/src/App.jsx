@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CurrencyProvider } from './hooks/useCurrency.jsx';
+import { ThemeProvider } from './hooks/useTheme.jsx';
 import Sidebar from './components/Sidebar/Sidebar.jsx';
 import Dashboard from './components/Dashboard/Dashboard.jsx';
 import Accounts from './components/Accounts/Accounts.jsx';
@@ -47,6 +48,7 @@ export default function App() {
   const pageMeta = PAGE_META[page] || PAGE_META.dashboard;
 
   return (
+    <ThemeProvider>
     <CurrencyProvider>
       <div className="app-layout">
         <div
@@ -82,5 +84,6 @@ export default function App() {
         </main>
       </div>
     </CurrencyProvider>
+    </ThemeProvider>
   );
 }

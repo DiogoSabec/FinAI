@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../utils/api.js';
 import { useCurrency } from '../../hooks/useCurrency.jsx';
-import { getCategoryColor } from '../../utils/categories.js';
+import { useTheme } from '../../hooks/useTheme.jsx';
+import { ACCENT_THEMES, getChartPalette } from '../../utils/themes.js';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
   XAxis, YAxis, CartesianGrid, Legend, AreaChart, Area
@@ -16,6 +17,15 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 
 export default function Dashboard() {
   const { fmt } = useCurrency();
+  const { themeId } = useTheme();
+  const theme = ACCENT_THEMES.find(t => t.id === themeId) ?? ACCENT_THEMES[0];
+  const chartPalette = getChartPalette(theme);
+  const hexAlpha = (hex, a) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${a})`;
+  };
   const [income, setIncome]   = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [subs, setSubs]       = useState([]);
@@ -94,9 +104,10 @@ export default function Dashboard() {
     byCat[e.category] = (byCat[e.category] || 0) + e.amount;
   });
   const pieData = Object.entries(byCat)
-    .map(([cat, total]) => ({ name: cat, value: total, color: getCategoryColor(cat) }))
+    .map(([cat, total]) => ({ name: cat, value: total }))
     .sort((a, b) => b.value - a.value)
-    .slice(0, 8);
+    .slice(0, 8)
+    .map((d, i) => ({ ...d, color: chartPalette[i % chartPalette.length] }));
   const topCategory = pieData[0] || null;
   const averageTicket = monthlyExpenseCount > 0 ? monthExpenses / monthlyExpenseCount : 0;
   const incomeCoverage = monthExpenses > 0 ? monthIncome / monthExpenses : 0;
@@ -314,21 +325,21 @@ export default function Dashboard() {
               <AreaChart data={trendData} margin={{ top:5, right:10, left:10, bottom:5 }}>
                 <defs>
                   <linearGradient id="incGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f4df9b" stopOpacity={0.38}/>
-                    <stop offset="95%" stopColor="#f4df9b" stopOpacity={0}/>
+                    <stop offset="5%" stopColor={theme.color2} stopOpacity={0.38}/>
+                    <stop offset="95%" stopColor={theme.color2} stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#d66b52" stopOpacity={0.34}/>
                     <stop offset="95%" stopColor="#d66b52" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(212,175,55,0.08)" />
-                <XAxis dataKey="label" tick={{ fill:'#9b906d', fontSize:12 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill:'#9b906d', fontSize:11 }} axisLine={false} tickLine={false} width={55}
+                <CartesianGrid strokeDasharray="3 3" stroke={hexAlpha(theme.color1, 0.08)} />
+                <XAxis dataKey="label" tick={{ fill: theme.textMuted, fontSize:12 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: theme.textMuted, fontSize:11 }} axisLine={false} tickLine={false} width={55}
                   tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend wrapperStyle={{ color:'#cdbf94', fontSize:'0.8rem' }} />
-                <Area type="monotone" dataKey="Income" stroke="#f4df9b" fill="url(#incGrad)" strokeWidth={2.5} dot={false} />
+                <Legend wrapperStyle={{ color: theme.textSecondary, fontSize:'0.8rem' }} />
+                <Area type="monotone" dataKey="Income" stroke={theme.color2} fill="url(#incGrad)" strokeWidth={2.5} dot={false} />
                 <Area type="monotone" dataKey="Expenses" stroke="#d66b52" fill="url(#expGrad)" strokeWidth={2.2} dot={false} />
               </AreaChart>
             </ResponsiveContainer>
