@@ -52,7 +52,4 @@ export function applyAccentTheme(themeId) {
   root.style.setProperty('--accent-gradient',
     `linear-gradient(135deg, ${theme.color3} 0%, ${theme.color1} 45%, ${theme.color2} 100%)`
   );
-  root.style.setProperty('--text-primary', theme.textPrimary);
-  root.style.setProperty('--text-secondary', theme.textSecondary);
-  root.style.setProperty('--text-muted', theme.textMuted);
 }
