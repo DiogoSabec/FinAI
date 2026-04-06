@@ -274,13 +274,17 @@ export default function Dashboard() {
 
       <div className="grid-4 mb-4">
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background:'var(--green-soft)' }}>💰</div>
+          <div className="stat-card-icon" style={{ background:'var(--green-soft)' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
           <div className="stat-card-label">Monthly Income</div>
           <div className="stat-card-value text-green">{fmt(monthIncome)}</div>
           <div className="stat-card-sub">{income.length} entries total</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background:'var(--red-soft)' }}>💸</div>
+          <div className="stat-card-icon" style={{ background:'var(--red-soft)' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
+          </div>
           <div className="stat-card-label">Monthly Expenses</div>
           <div className="stat-card-value text-red">{fmt(monthExpenses)}</div>
           <div className="stat-card-sub">{expenses.filter(e => {
@@ -289,14 +293,20 @@ export default function Dashboard() {
           }).length} transactions</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{ background:'var(--blue-soft)' }}>🔄</div>
+          <div className="stat-card-icon" style={{ background:'var(--blue-soft)' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+          </div>
           <div className="stat-card-label">Subscriptions/mo</div>
           <div className="stat-card-value" style={{ color:'var(--accent-2)' }}>{fmt(monthSubCost)}</div>
           <div className="stat-card-sub">{subs.filter(s=>s.active).length} active</div>
         </div>
         <div className="stat-card" style={{ borderColor: netBalance >= 0 ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)' }}>
           <div className="stat-card-icon" style={{ background: netBalance >= 0 ? 'var(--green-soft)' : 'var(--red-soft)' }}>
-            {netBalance >= 0 ? '📈' : '📉'}
+            {netBalance >= 0 ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
+            )}
           </div>
           <div className="stat-card-label">Net Balance</div>
           <div className={`stat-card-value ${netBalance >= 0 ? 'text-green' : 'text-red'}`}>{fmt(netBalance)}</div>
@@ -387,7 +397,9 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="empty-state">
-                <div className="empty-state-icon">📊</div>
+                <div className="empty-state-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="40" height="40"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                </div>
                 <h3>No expense data yet</h3>
                 <p>Add expenses or import a CSV to see breakdown</p>
               </div>
@@ -422,7 +434,9 @@ export default function Dashboard() {
               </table>
             ) : (
               <div className="empty-state">
-                <div className="empty-state-icon">💳</div>
+                <div className="empty-state-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="40" height="40"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                </div>
                 <h3>No transactions yet</h3>
                 <p>Start by adding expenses or importing a CSV</p>
               </div>
