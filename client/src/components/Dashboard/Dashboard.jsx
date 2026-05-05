@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../../utils/api.js';
 import { useCurrency } from '../../hooks/useCurrency.jsx';
 import { useTheme } from '../../hooks/useTheme.jsx';
@@ -76,38 +76,34 @@ export default function Dashboard() {
   const activeSubscriptions = subs.filter(s => s.active).length;
 
   // Spending by category
-  let filteredPieExpenses = expenses;
-  if (pieRange !== 'all') {
-    filteredPieExpenses = expenses.filter(e => {
-      const d = new Date(e.date + 'T12:00:00');
-      const m = d.getMonth();
-      const y = d.getFullYear();
-      
-      if (pieRange === 'this_month') {
-        return m === now.getMonth() && y === now.getFullYear();
-      }
-      if (pieRange === 'last_month') {
-        const lastMonth = now.getMonth() - 1;
-        const targetM = lastMonth < 0 ? 11 : lastMonth;
-        const targetY = lastMonth < 0 ? now.getFullYear() - 1 : now.getFullYear();
-        return m === targetM && y === targetY;
-      }
-      const diffMonths = (now.getFullYear() - y) * 12 + (now.getMonth() - m);
-      if (pieRange === '3m') return diffMonths >= 0 && diffMonths < 3;
-      if (pieRange === '6m') return diffMonths >= 0 && diffMonths < 6;
-      return true;
-    });
-  }
-
-  const byCat = {};
-  filteredPieExpenses.forEach(e => {
-    byCat[e.category] = (byCat[e.category] || 0) + e.amount;
-  });
-  const pieData = Object.entries(byCat)
-    .map(([cat, total]) => ({ name: cat, value: total }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 8)
-    .map((d, i) => ({ ...d, color: chartPalette[i % chartPalette.length] }));
+  const pieData = useMemo(() => {
+    let filtered = expenses;
+    if (pieRange !== 'all') {
+      filtered = expenses.filter(e => {
+        const d = new Date(e.date + 'T12:00:00');
+        const m = d.getMonth();
+        const y = d.getFullYear();
+        if (pieRange === 'this_month') return m === now.getMonth() && y === now.getFullYear();
+        if (pieRange === 'last_month') {
+          const lastMonth = now.getMonth() - 1;
+          const targetM = lastMonth < 0 ? 11 : lastMonth;
+          const targetY = lastMonth < 0 ? now.getFullYear() - 1 : now.getFullYear();
+          return m === targetM && y === targetY;
+        }
+        const diffMonths = (now.getFullYear() - y) * 12 + (now.getMonth() - m);
+        if (pieRange === '3m') return diffMonths >= 0 && diffMonths < 3;
+        if (pieRange === '6m') return diffMonths >= 0 && diffMonths < 6;
+        return true;
+      });
+    }
+    const byCat = {};
+    filtered.forEach(e => { byCat[e.category] = (byCat[e.category] || 0) + e.amount; });
+    return Object.entries(byCat)
+      .map(([cat, total]) => ({ name: cat, value: total }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8)
+      .map((d, i) => ({ ...d, color: chartPalette[i % chartPalette.length] }));
+  }, [expenses, pieRange, chartPalette]);
   const topCategory = pieData[0] || null;
   const averageTicket = monthlyExpenseCount > 0 ? monthExpenses / monthlyExpenseCount : 0;
   const incomeCoverage = monthExpenses > 0 ? monthIncome / monthExpenses : 0;
@@ -135,7 +131,8 @@ export default function Dashboard() {
   ];
 
   // Trend Chart Data
-  const trendData = [];
+  const trendData = useMemo(() => {
+  const data = [];
   if (trendRange === 'this_month' || trendRange === 'last_month') {
     const targetMonth = trendRange === 'this_month' ? now.getMonth() : now.getMonth() - 1;
     const targetYear = targetMonth < 0 ? now.getFullYear() - 1 : now.getFullYear();
@@ -152,7 +149,7 @@ export default function Dashboard() {
         return d.getDate() === i && d.getMonth() === realTargetMonth && d.getFullYear() === targetYear;
       }).reduce((s, x) => s + x.amount, 0);
 
-      trendData.push({ label: `${i} ${MONTHS[realTargetMonth]}`, Income: inc, Expenses: exp });
+      data.push({ label: `${i} ${MONTHS[realTargetMonth]}`, Income: inc, Expenses: exp });
     }
   } else {
     let monthsToShow = 6;
@@ -166,10 +163,7 @@ export default function Dashboard() {
         monthsToShow = 6;
       }
     }
-
-    // Cap to a reasonable amount to avoid freezing if 100 years of data
-    if (monthsToShow > 120) monthsToShow = 120; 
-
+    if (monthsToShow > 120) monthsToShow = 120;
     for (let i = monthsToShow - 1; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const m = d.getMonth() + 1;
@@ -182,11 +176,12 @@ export default function Dashboard() {
         const xd = new Date(x.date + 'T12:00:00');
         return xd.getMonth() + 1 === m && xd.getFullYear() === y;
       }).reduce((s, x) => s + x.amount, 0);
-      
       const label = trendRange === 'all' && monthsToShow > 12 ? `${MONTHS[d.getMonth()]} '${String(y).slice(2)}` : MONTHS[d.getMonth()];
-      trendData.push({ label, Income: inc, Expenses: exp });
+      data.push({ label, Income: inc, Expenses: exp });
     }
   }
+  return data;
+  }, [income, expenses, trendRange]);
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
@@ -222,95 +217,33 @@ export default function Dashboard() {
 
   return (
     <div className="page-content">
-      <div className="dashboard-hero">
-        <div className="dashboard-hero-copy">
-          <span className="dashboard-kicker">Private Wealth Overview</span>
-          <h1>Dashboard</h1>
-          <p>
-            A cinematic command center for your money, with clear focus on monthly flow,
-            category pressure, and recurring spend.
-          </p>
-          <div className="dashboard-chip-row">
-            <span className="dashboard-chip">{MONTHS[now.getMonth()]} {now.getFullYear()}</span>
-            <span className="dashboard-chip">Savings rate {savingsRate}%</span>
-            <span className="dashboard-chip">{activeSubscriptions} active subscriptions</span>
-          </div>
-        </div>
-
-        <div className="dashboard-hero-panel">
-          <div className="dashboard-hero-focus">
-            <span className="dashboard-hero-label">Net position this month</span>
-            <strong className={netBalance >= 0 ? 'text-green' : 'text-red'}>{fmt(netBalance)}</strong>
-            <p>
-              {netBalance >= 0
-                ? 'Your monthly cash flow is in positive territory.'
-                : 'Expenses and recurring costs are currently ahead of income.'}
-            </p>
-          </div>
-          <div className="dashboard-hero-grid">
-            <div className="dashboard-hero-stat">
-              <span>Top spend</span>
-              <strong>{topCategory ? topCategory.name : 'No data'}</strong>
-              <small>{topCategory ? fmt(topCategory.value) : 'Add expenses to unlock this view'}</small>
-            </div>
-            <div className="dashboard-hero-stat">
-              <span>Average ticket</span>
-              <strong>{monthlyExpenseCount > 0 ? fmt(averageTicket) : 'No spend'}</strong>
-              <small>{monthlyExpenseCount > 0 ? `${monthlyExpenseCount} transactions this month` : 'Waiting for monthly expenses'}</small>
-            </div>
-            <div className="dashboard-hero-stat">
-              <span>Recurring drag</span>
-              <strong>{fmt(monthSubCost)}</strong>
-              <small>{activeSubscriptions} active services</small>
-            </div>
-            <div className="dashboard-hero-stat">
-              <span>Income coverage</span>
-              <strong>{monthExpenses > 0 ? `${incomeCoverage.toFixed(1)}x` : '∞'}</strong>
-              <small>Income relative to monthly expenses</small>
-            </div>
-          </div>
-        </div>
+      <div className="page-header">
+        <h1>{MONTHS[now.getMonth()]} {now.getFullYear()}</h1>
+        <p>{netBalance >= 0
+          ? 'Cash flow is positive this month.'
+          : 'Expenses and recurring costs are ahead of income this month.'}</p>
       </div>
 
-      <div className="grid-4 mb-4">
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{ background:'var(--green-soft)' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          </div>
-          <div className="stat-card-label">Monthly Income</div>
-          <div className="stat-card-value text-green">{fmt(monthIncome)}</div>
-          <div className="stat-card-sub">{income.length} entries total</div>
+      <div className="dashboard-kpi-bar">
+        <div className="dashboard-kpi dashboard-kpi-primary">
+          <span className="dashboard-kpi-label">Net this month</span>
+          <strong className={`dashboard-kpi-value ${netBalance >= 0 ? 'text-green' : 'text-red'}`}>{fmt(netBalance)}</strong>
+          <span className="dashboard-kpi-meta">Savings rate {savingsRate}%</span>
         </div>
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{ background:'var(--red-soft)' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
-          </div>
-          <div className="stat-card-label">Monthly Expenses</div>
-          <div className="stat-card-value text-red">{fmt(monthExpenses)}</div>
-          <div className="stat-card-sub">{expenses.filter(e => {
-            const d = new Date(e.date + 'T12:00:00');
-            return d.getMonth()+1 === parseInt(THIS_MONTH) && d.getFullYear() === parseInt(THIS_YEAR);
-          }).length} transactions</div>
+        <div className="dashboard-kpi">
+          <span className="dashboard-kpi-label">Income</span>
+          <strong className="dashboard-kpi-value text-green">{fmt(monthIncome)}</strong>
+          <span className="dashboard-kpi-meta">{income.length} entries total</span>
         </div>
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{ background:'var(--blue-soft)' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
-          </div>
-          <div className="stat-card-label">Subscriptions/mo</div>
-          <div className="stat-card-value" style={{ color:'var(--accent-2)' }}>{fmt(monthSubCost)}</div>
-          <div className="stat-card-sub">{subs.filter(s=>s.active).length} active</div>
+        <div className="dashboard-kpi">
+          <span className="dashboard-kpi-label">Expenses</span>
+          <strong className="dashboard-kpi-value text-red">{fmt(monthExpenses)}</strong>
+          <span className="dashboard-kpi-meta">{monthlyExpenseCount} transactions</span>
         </div>
-        <div className="stat-card" style={{ borderColor: netBalance >= 0 ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)' }}>
-          <div className="stat-card-icon" style={{ background: netBalance >= 0 ? 'var(--green-soft)' : 'var(--red-soft)' }}>
-            {netBalance >= 0 ? (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-            ) : (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
-            )}
-          </div>
-          <div className="stat-card-label">Net Balance</div>
-          <div className={`stat-card-value ${netBalance >= 0 ? 'text-green' : 'text-red'}`}>{fmt(netBalance)}</div>
-          <div className="stat-card-sub">Savings rate: {savingsRate}%</div>
+        <div className="dashboard-kpi">
+          <span className="dashboard-kpi-label">Subscriptions</span>
+          <strong className="dashboard-kpi-value text-accent">{fmt(monthSubCost)}</strong>
+          <span className="dashboard-kpi-meta">{activeSubscriptions} active</span>
         </div>
       </div>
 
@@ -339,8 +272,8 @@ export default function Dashboard() {
                     <stop offset="95%" stopColor={theme.color2} stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#d66b52" stopOpacity={0.34}/>
-                    <stop offset="95%" stopColor="#d66b52" stopOpacity={0}/>
+                    <stop offset="5%" stopColor={theme.expense || '#d66b52'} stopOpacity={0.34}/>
+                    <stop offset="95%" stopColor={theme.expense || '#d66b52'} stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={hexAlpha(theme.color1, 0.08)} />
@@ -350,7 +283,7 @@ export default function Dashboard() {
                 <Tooltip content={<CustomTooltip />} />
                 <Legend wrapperStyle={{ color: theme.textSecondary, fontSize:'0.8rem' }} />
                 <Area type="monotone" dataKey="Income" stroke={theme.color2} fill="url(#incGrad)" strokeWidth={2.5} dot={false} />
-                <Area type="monotone" dataKey="Expenses" stroke="#d66b52" fill="url(#expGrad)" strokeWidth={2.2} dot={false} />
+                <Area type="monotone" dataKey="Expenses" stroke={theme.expense || '#d66b52'} fill="url(#expGrad)" strokeWidth={2.2} dot={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../../utils/api.js';
 import { useCurrency } from '../../hooks/useCurrency.jsx';
 import { CATEGORIES, PAYMENT_METHODS } from '../../utils/categories.js';
+import { IconEdit, IconTrash, IconClose, IconArrowSwap, IconInfo, IconCard } from '../icons.jsx';
 
 const EMPTY = { description:'', amount:'', category:'Food', date: new Date().toISOString().slice(0,10), payment_method:'credit', notes:'', account_id: null, is_transfer: false, to_account_id: null, ignore_dashboard: false };
 
@@ -22,6 +23,8 @@ export default function Expenses() {
   // Selection state
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(new Set());
+  const [lastClickedId, setLastClickedId] = useState(null);
+  const [quickCatId, setQuickCatId] = useState(null);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [showBulkEdit, setShowBulkEdit] = useState(false);
   const [bulkForm, setBulkForm] = useState({ category: '', payment_method: '', account_id: '', ignore_dashboard: '' });
@@ -100,6 +103,18 @@ export default function Expenses() {
     setDeleteConfirm(id);
   };
 
+  const quickChangeCategory = async (item, newCat) => {
+    setQuickCatId(null);
+    if (!newCat || newCat === item.category) return;
+    setItems(prev => prev.map(i => i.id === item.id ? { ...i, category: newCat } : i));
+    try {
+      await api.put(`/expenses/${item.id}`, { ...item, category: newCat });
+    } catch (e) {
+      setItems(prev => prev.map(i => i.id === item.id ? { ...i, category: item.category } : i));
+      alert('Failed to update category: ' + e.message);
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleteConfirm) return;
     await api.delete(`/expenses/${deleteConfirm}`);
@@ -111,15 +126,36 @@ export default function Expenses() {
   const toggleSelectMode = () => {
     setSelectMode(v => !v);
     setSelected(new Set());
+    setLastClickedId(null);
     setBulkAiMessage('');
   };
 
-  const toggleItem = (id) => {
+  const handleSelect = (id, shiftKey) => {
+    if (shiftKey && lastClickedId !== null && lastClickedId !== id) {
+      const ids = filtered.map(i => i.id);
+      const lastIdx = ids.indexOf(lastClickedId);
+      const curIdx = ids.indexOf(id);
+      if (lastIdx >= 0 && curIdx >= 0) {
+        const [from, to] = lastIdx < curIdx ? [lastIdx, curIdx] : [curIdx, lastIdx];
+        const range = ids.slice(from, to + 1);
+        const selecting = !selected.has(id);
+        setSelected(prev => {
+          const next = new Set(prev);
+          for (const rid of range) {
+            if (selecting) next.add(rid); else next.delete(rid);
+          }
+          return next;
+        });
+        setLastClickedId(id);
+        return;
+      }
+    }
     setSelected(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+    setLastClickedId(id);
   };
 
   const toggleAll = () => {
@@ -128,6 +164,7 @@ export default function Expenses() {
     } else {
       setSelected(new Set(filtered.map(i => i.id)));
     }
+    setLastClickedId(null);
   };
 
   const confirmBulkDelete = async () => {
@@ -228,20 +265,29 @@ export default function Expenses() {
       </div>
 
       <div className="card mb-4">
-        <div className="card-body" style={{display:'flex', gap:12, flexWrap:'wrap', alignItems:'center'}}>
-          <input className="form-input" style={{maxWidth:280}} placeholder="🔍 Search expenses…"
-            value={search} onChange={e => setSearch(e.target.value)} />
-          <input className="form-input" type="month" style={{maxWidth:200}} value={filterMonth}
-            onChange={e => setFilterMonth(e.target.value)} />
-          <select className="form-select" style={{maxWidth:200}} value={filterCat}
-            onChange={e => setFilterCat(e.target.value)}>
-            <option value="">All Categories</option>
-            {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
-          </select>
+        <div className="card-body filter-bar">
+          <div className="filter-field">
+            <label className="form-label" htmlFor="expense-search">Search</label>
+            <input id="expense-search" className="form-input" placeholder="iFood, market…"
+              value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          <div className="filter-field">
+            <label className="form-label" htmlFor="expense-month">Month</label>
+            <input id="expense-month" className="form-input" type="month" value={filterMonth}
+              onChange={e => setFilterMonth(e.target.value)} />
+          </div>
+          <div className="filter-field">
+            <label className="form-label" htmlFor="expense-category-filter">Category</label>
+            <select id="expense-category-filter" className="form-select" value={filterCat}
+              onChange={e => setFilterCat(e.target.value)}>
+              <option value="">All categories</option>
+              {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
+            </select>
+          </div>
           {(filterCat || search || filterMonth) && (
-            <button className="btn btn-ghost btn-sm" onClick={() => { setFilterCat(''); setSearch(''); setFilterMonth(''); }}>Clear</button>
+            <button className="btn btn-ghost btn-sm filter-clear" onClick={() => { setFilterCat(''); setSearch(''); setFilterMonth(''); }}>Clear</button>
           )}
-          <div style={{marginLeft:'auto'}} className="flex items-center gap-2">
+          <div className="filter-summary">
             <span className="text-muted" style={{fontSize:'0.8rem'}}>{filtered.length} entries</span>
             <span className="badge badge-red">{fmt(total)}</span>
           </div>
@@ -259,7 +305,9 @@ export default function Expenses() {
             <div className="empty-state"><div className="spinner" /></div>
           ) : filtered.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">💳</div>
+              <div className="empty-state-icon" aria-hidden="true">
+                <IconCard width={32} height={32} />
+              </div>
               <h3>{items.length === 0 ? 'No expenses yet' : 'No results'}</h3>
               <p>{items.length === 0 ? 'Start by adding an expense or importing a CSV' : 'Try a different filter'}</p>
             </div>
@@ -269,7 +317,8 @@ export default function Expenses() {
                 <tr>
                   {selectMode && (
                     <th style={{width:36}}>
-                      <input type="checkbox" style={{width:'auto',margin:0}}
+                      <input type="checkbox" aria-label="Select all"
+                        style={{width:'auto',margin:0}}
                         checked={filtered.length > 0 && selected.size === filtered.length}
                         onChange={toggleAll} />
                     </th>
@@ -279,14 +328,14 @@ export default function Expenses() {
               </thead>
               <tbody>
                 {filtered.map(item => (
-                  <tr key={item.id} style={selected.has(item.id) ? {background:'var(--blue-soft)'} : undefined}
-                    onClick={selectMode ? () => toggleItem(item.id) : undefined}
-                    className={selectMode ? 'cursor-pointer' : undefined}>
+                  <tr key={item.id} className={`${selectMode ? 'cursor-pointer is-selectable' : ''} ${selected.has(item.id) ? 'is-selected' : ''}`}
+                    onClick={selectMode ? (e) => handleSelect(item.id, e.shiftKey) : undefined}>
                     {selectMode && (
                       <td onClick={e => e.stopPropagation()}>
-                        <input type="checkbox" style={{width:'auto',margin:0}}
+                        <input type="checkbox" aria-label={`Select ${item.description}`}
+                          style={{width:'auto',margin:0}}
                           checked={selected.has(item.id)}
-                          onChange={() => toggleItem(item.id)} />
+                          onChange={(e) => handleSelect(item.id, e.nativeEvent.shiftKey)} />
                       </td>
                     )}
                     <td className="text-muted" style={{whiteSpace:'nowrap'}}>{item.date}</td>
@@ -295,10 +344,28 @@ export default function Expenses() {
                       {item.notes && <div style={{fontSize:'0.75rem',color:'var(--text-muted)'}}>{item.notes}</div>}
                     </td>
                     <td><span className="badge badge-muted">{accounts.find(a => a.id === item.account_id)?.name || '-'}</span></td>
-                    <td>
-                      <span className="badge badge-muted">
-                        {CATEGORIES.find(c=>c.id===item.category)?.icon} {item.category}
-                      </span>
+                    <td onClick={e => !selectMode && e.stopPropagation()}>
+                      {quickCatId === item.id && !selectMode && !item.is_transfer ? (
+                        <select
+                          className="form-select"
+                          autoFocus
+                          style={{padding:'2px 6px', fontSize:'0.78rem', height:'auto', maxWidth:170}}
+                          value={item.category}
+                          onChange={e => quickChangeCategory(item, e.target.value)}
+                          onBlur={() => setQuickCatId(null)}
+                        >
+                          {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
+                        </select>
+                      ) : (
+                        <span
+                          className="badge badge-muted"
+                          title={!selectMode && !item.is_transfer ? 'Click to change category' : undefined}
+                          style={!selectMode && !item.is_transfer ? {cursor:'pointer'} : undefined}
+                          onClick={() => { if (!selectMode && !item.is_transfer) setQuickCatId(item.id); }}
+                        >
+                          {CATEGORIES.find(c=>c.id===item.category)?.icon} {item.category}
+                        </span>
+                      )}
                       {item.is_transfer ? <span className="badge badge-blue" style={{marginLeft: 4, fontSize: '0.7rem'}}>Transfer</span> : null}
                       {item.ignore_dashboard && !item.is_transfer ? <span className="badge badge-muted" style={{marginLeft: 4, fontSize: '0.7rem'}}>Hidden</span> : null}
                     </td>
@@ -307,8 +374,12 @@ export default function Expenses() {
                     <td>
                       {!selectMode && (
                         <div className="flex gap-2">
-                          <button className="btn btn-ghost btn-sm btn-icon" onClick={() => openEdit(item)}>✏️</button>
-                          <button className="btn btn-danger btn-sm btn-icon" onClick={() => remove(item.id)}>🗑️</button>
+                          <button className="btn btn-ghost btn-sm btn-icon" aria-label={`Edit ${item.description}`} onClick={() => openEdit(item)}>
+                            <IconEdit />
+                          </button>
+                          <button className="btn btn-danger btn-sm btn-icon" aria-label={`Delete ${item.description}`} onClick={() => remove(item.id)}>
+                            <IconTrash />
+                          </button>
                         </div>
                       )}
                     </td>
@@ -320,20 +391,15 @@ export default function Expenses() {
         </div>
       </div>
 
-      {/* Bulk action bar */}
       {selectMode && selected.size > 0 && (
-        <div style={{
-          position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)',
-          background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:12,
-          boxShadow:'0 4px 24px rgba(0,0,0,0.18)', padding:'12px 20px',
-          display:'flex', alignItems:'center', justifyContent:'center', gap:12, zIndex:200, flexWrap:'wrap'
-        }}>
-          <span style={{fontWeight:600}}>{selected.size} selected</span>
+        <div className="bulk-bar" role="toolbar" aria-label="Bulk actions">
+          <span className="bulk-bar-count">{selected.size} selected</span>
+          <span className="bulk-bar-hint">Shift-click to range-select</span>
           <button className="btn btn-primary btn-sm" onClick={rerunAiForSelected} disabled={bulkSuggesting || bulkSaving}>
-            {bulkSuggesting ? <span className="spinner" style={{width:14,height:14}} /> : 'Run AI Again'}
+            {bulkSuggesting ? <span className="spinner" style={{width:14,height:14}} /> : 'Run AI again'}
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={openBulkEdit}>Edit Fields</button>
-          <button className="btn btn-danger btn-sm" onClick={() => setBulkDeleteConfirm(true)}>Delete Selected</button>
+          <button className="btn btn-ghost btn-sm" onClick={openBulkEdit}>Edit fields</button>
+          <button className="btn btn-danger btn-sm" onClick={() => setBulkDeleteConfirm(true)}>Delete selected</button>
         </div>
       )}
 
@@ -342,7 +408,7 @@ export default function Expenses() {
           <div className="modal" style={{maxWidth: '400px'}}>
             <div className="modal-header">
               <span className="modal-title">Confirm Delete</span>
-              <button className="btn btn-ghost btn-icon" onClick={() => setDeleteConfirm(null)}>✕</button>
+              <button className="btn btn-ghost btn-icon" aria-label="Close dialog" onClick={() => setDeleteConfirm(null)}><IconClose /></button>
             </div>
             <div className="modal-body">
               <p>Are you sure you want to delete this expense?</p>
@@ -360,7 +426,7 @@ export default function Expenses() {
           <div className="modal" style={{maxWidth: '400px'}}>
             <div className="modal-header">
               <span className="modal-title">Delete {selected.size} Expenses</span>
-              <button className="btn btn-ghost btn-icon" onClick={() => setBulkDeleteConfirm(false)}>✕</button>
+              <button className="btn btn-ghost btn-icon" aria-label="Close dialog" onClick={() => setBulkDeleteConfirm(false)}><IconClose /></button>
             </div>
             <div className="modal-body">
               <p>Are you sure you want to delete <strong>{selected.size}</strong> expense{selected.size !== 1 ? 's' : ''}? This cannot be undone.</p>
@@ -375,65 +441,57 @@ export default function Expenses() {
 
       {showBulkEdit && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowBulkEdit(false)}>
-          <div className="modal" style={{maxWidth: '480px'}}>
+          <div className="modal" style={{maxWidth: '520px'}}>
             <div className="modal-header">
-              <span className="modal-title">Edit {selected.size} Expenses</span>
-              <button className="btn btn-ghost btn-icon" onClick={() => setShowBulkEdit(false)}>✕</button>
+              <span className="modal-title">Edit {selected.size} Expense{selected.size !== 1 ? 's' : ''}</span>
+              <button className="btn btn-ghost btn-icon" aria-label="Close dialog" onClick={() => setShowBulkEdit(false)}><IconClose /></button>
             </div>
             <div className="modal-body">
-              <p style={{color:'var(--text-muted)', fontSize:'0.85rem', marginBottom:16}}>Check a field to apply that change to all selected expenses.</p>
+              <p style={{color:'var(--text-muted)', fontSize:'0.85rem', marginBottom:16, marginTop:0}}>
+                Toggle a field to overwrite it across the selected entries. Untouched fields stay as they are.
+              </p>
 
-              <div className="form-group" style={{display:'flex', alignItems:'center', gap:8}}>
-                <input type="checkbox" style={{width:'auto',margin:0}} checked={bulkFields.category}
-                  onChange={e => setBulkFields(f=>({...f, category: e.target.checked}))} />
-                <label className="form-label" style={{margin:0, flex:1}}>Category</label>
-              </div>
-              {bulkFields.category && (
-                <select className="form-select mb-3" value={bulkForm.category}
-                  onChange={e => setBulkForm(f=>({...f, category: e.target.value}))}>
-                  <option value="">-- Select --</option>
-                  {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
-                </select>
-              )}
+              <div style={{display:'flex', flexDirection:'column', gap:10}}>
+                <BulkField label="Category" hint="Reassign spending category"
+                  active={bulkFields.category}
+                  onToggle={(v) => setBulkFields(f => ({...f, category: v}))}>
+                  <select className="form-select" value={bulkForm.category}
+                    onChange={e => setBulkForm(f=>({...f, category: e.target.value}))}>
+                    <option value="">-- Select --</option>
+                    {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
+                  </select>
+                </BulkField>
 
-              <div className="form-group" style={{display:'flex', alignItems:'center', gap:8}}>
-                <input type="checkbox" style={{width:'auto',margin:0}} checked={bulkFields.payment_method}
-                  onChange={e => setBulkFields(f=>({...f, payment_method: e.target.checked}))} />
-                <label className="form-label" style={{margin:0, flex:1}}>Payment Method</label>
-              </div>
-              {bulkFields.payment_method && (
-                <select className="form-select mb-3" value={bulkForm.payment_method}
-                  onChange={e => setBulkForm(f=>({...f, payment_method: e.target.value}))}>
-                  <option value="">-- Select --</option>
-                  {PAYMENT_METHODS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                </select>
-              )}
+                <BulkField label="Payment Method" hint="How these were paid"
+                  active={bulkFields.payment_method}
+                  onToggle={(v) => setBulkFields(f => ({...f, payment_method: v}))}>
+                  <select className="form-select" value={bulkForm.payment_method}
+                    onChange={e => setBulkForm(f=>({...f, payment_method: e.target.value}))}>
+                    <option value="">-- Select --</option>
+                    {PAYMENT_METHODS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  </select>
+                </BulkField>
 
-              <div className="form-group" style={{display:'flex', alignItems:'center', gap:8}}>
-                <input type="checkbox" style={{width:'auto',margin:0}} checked={bulkFields.account_id}
-                  onChange={e => setBulkFields(f=>({...f, account_id: e.target.checked}))} />
-                <label className="form-label" style={{margin:0, flex:1}}>Account</label>
-              </div>
-              {bulkFields.account_id && (
-                <select className="form-select mb-3" value={bulkForm.account_id}
-                  onChange={e => setBulkForm(f=>({...f, account_id: e.target.value}))}>
-                  <option value="">-- No Account --</option>
-                  {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-              )}
+                <BulkField label="Account" hint="Linked account"
+                  active={bulkFields.account_id}
+                  onToggle={(v) => setBulkFields(f => ({...f, account_id: v}))}>
+                  <select className="form-select" value={bulkForm.account_id}
+                    onChange={e => setBulkForm(f=>({...f, account_id: e.target.value}))}>
+                    <option value="">-- No Account --</option>
+                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  </select>
+                </BulkField>
 
-              <div className="form-group" style={{display:'flex', alignItems:'center', gap:8}}>
-                <input type="checkbox" style={{width:'auto',margin:0}} checked={bulkFields.ignore_dashboard}
-                  onChange={e => setBulkFields(f=>({...f, ignore_dashboard: e.target.checked}))} />
-                <label className="form-label" style={{margin:0, flex:1}}>Dashboard visibility</label>
+                <BulkField label="Dashboard Visibility" hint="Include or exclude from totals"
+                  active={bulkFields.ignore_dashboard}
+                  onToggle={(v) => setBulkFields(f => ({...f, ignore_dashboard: v}))}>
+                  <select className="form-select" value={bulkForm.ignore_dashboard}
+                    onChange={e => setBulkForm(f=>({...f, ignore_dashboard: e.target.value}))}>
+                    <option value="false">Show on Dashboard</option>
+                    <option value="true">Hide from Dashboard</option>
+                  </select>
+                </BulkField>
               </div>
-              {bulkFields.ignore_dashboard && (
-                <select className="form-select mb-3" value={bulkForm.ignore_dashboard}
-                  onChange={e => setBulkForm(f=>({...f, ignore_dashboard: e.target.value}))}>
-                  <option value="false">Show on Dashboard</option>
-                  <option value="true">Hide from Dashboard</option>
-                </select>
-              )}
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowBulkEdit(false)}>Cancel</button>
@@ -447,10 +505,10 @@ export default function Expenses() {
 
       {showModal && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && close()}>
-          <div className="modal">
+          <div className="modal" id="expense-modal">
             <div className="modal-header">
               <span className="modal-title">{editing ? 'Edit Expense' : 'Add Expense'}</span>
-              <button className="btn btn-ghost btn-icon" onClick={close}>✕</button>
+              <button className="btn btn-ghost btn-icon" aria-label="Close dialog" onClick={close}><IconClose /></button>
             </div>
             <div className="modal-body">
               <div className="form-row">
@@ -512,8 +570,9 @@ export default function Expenses() {
                     }));
                   }}
                   style={{ width: 'auto', margin: 0 }} />
-                <label htmlFor="expense-is-transfer" style={{ margin: 0, fontWeight: 'bold', cursor: 'pointer', color: 'var(--blue)' }} className="form-label">
-                  🔄 Mark as Transfer between accounts
+                <label htmlFor="expense-is-transfer" style={{ margin: 0, fontWeight: 'bold', cursor: 'pointer', color: 'var(--blue)', display:'inline-flex', alignItems:'center', gap:8 }} className="form-label">
+                  <IconArrowSwap />
+                  Mark as Transfer between accounts
                 </label>
               </div>
 
@@ -530,8 +589,9 @@ export default function Expenses() {
               {form.is_transfer && (
                 <div className="form-group" style={{ padding: '12px', background: 'var(--bg-body)', borderRadius: '8px', border: '1px solid var(--border)', marginTop: '0.5rem' }}>
                   {editing?.is_transfer ? (
-                    <div style={{color: 'var(--text-muted)', fontSize: '0.85rem'}}>
-                      ℹ️ This is a transfer record. Editing it here will only update this side of the transaction.
+                    <div style={{color: 'var(--text-muted)', fontSize: '0.85rem', display:'flex', alignItems:'flex-start', gap:8}}>
+                      <IconInfo />
+                      <span>This is a transfer record. Editing it here will only update this side of the transaction.</span>
                     </div>
                   ) : (
                     <>
@@ -553,6 +613,33 @@ export default function Expenses() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BulkField({ label, hint, active, onToggle, children }) {
+  return (
+    <div style={{
+      border: `1px solid ${active ? 'var(--border-accent)' : 'var(--border)'}`,
+      background: active ? 'rgba(var(--accent-rgb), 0.05)' : 'transparent',
+      borderRadius: 10,
+      padding: 12,
+      transition: 'border-color 0.15s, background 0.15s'
+    }}>
+      <label style={{display:'flex', alignItems:'center', gap:10, cursor:'pointer', margin:0}}>
+        <input type="checkbox" checked={active}
+          onChange={e => onToggle(e.target.checked)}
+          style={{width:'auto', margin:0}} />
+        <div style={{flex:1}}>
+          <div style={{fontWeight:600, fontSize:'0.88rem', color:'var(--text-primary)'}}>{label}</div>
+          {hint && <div style={{fontSize:'0.74rem', color:'var(--text-muted)', marginTop:2}}>{hint}</div>}
+        </div>
+      </label>
+      {active && (
+        <div style={{marginTop:10}}>
+          {children}
         </div>
       )}
     </div>

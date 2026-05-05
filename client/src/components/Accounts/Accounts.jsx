@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../../utils/api.js';
 import { useCurrency } from '../../hooks/useCurrency.jsx';
+import { IconEdit, IconTrash, IconClose, IconAccounts } from '../icons.jsx';
 
 const EMPTY = { name: '', type: 'Checking', balance: '' };
 
@@ -76,27 +77,27 @@ export default function Accounts() {
         </button>
       </div>
 
-      <div className="grid-3 mb-4">
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'var(--green-soft)' }}>🏦</div>
-          <div className="stat-card-label">Total Assets</div>
-          <div className="stat-card-value text-green">{fmt(totalAssets)}</div>
+      <div className="dashboard-kpi-bar">
+        <div className="dashboard-kpi dashboard-kpi-primary">
+          <span className="dashboard-kpi-label">Net worth</span>
+          <strong className="dashboard-kpi-value text-accent">{fmt(totalBalance)}</strong>
+          <span className="dashboard-kpi-meta">Assets minus credit balances</span>
         </div>
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'var(--red-soft)' }}>💳</div>
-          <div className="stat-card-label">Total Debt</div>
-          <div className="stat-card-value text-red">{fmt(totalDebt)}</div>
+        <div className="dashboard-kpi">
+          <span className="dashboard-kpi-label">Total assets</span>
+          <strong className="dashboard-kpi-value text-green">{fmt(totalAssets)}</strong>
+          <span className="dashboard-kpi-meta">Checking, savings, cash, investments</span>
         </div>
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{ background: 'var(--blue-soft)' }}>⚖️</div>
-          <div className="stat-card-label">Net Net Worth</div>
-          <div className="stat-card-value text-accent">{fmt(totalBalance)}</div>
+        <div className="dashboard-kpi">
+          <span className="dashboard-kpi-label">Total debt</span>
+          <strong className="dashboard-kpi-value text-red">{fmt(totalDebt)}</strong>
+          <span className="dashboard-kpi-meta">Credit balances outstanding</span>
         </div>
       </div>
 
       <div className="card">
         <div className="card-header">
-          <span className="card-title">🏛 Your Accounts</span>
+          <span className="card-title">Your Accounts</span>
         </div>
         <div className="table-wrap">
           {loading ? (
@@ -105,7 +106,9 @@ export default function Accounts() {
             </div>
           ) : items.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">🏦</div>
+              <div className="empty-state-icon" aria-hidden="true">
+                <IconAccounts width={32} height={32} />
+              </div>
               <h3>No accounts created yet</h3>
               <p>Add your first bank account or wallet</p>
             </div>
@@ -138,15 +141,17 @@ export default function Accounts() {
                       <div className="flex gap-2">
                         <button
                           className="btn btn-ghost btn-sm btn-icon"
+                          aria-label={`Edit ${item.name}`}
                           onClick={() => openEdit(item)}
                         >
-                          ✏️
+                          <IconEdit />
                         </button>
                         <button
                           className="btn btn-danger btn-sm btn-icon"
+                          aria-label={`Delete ${item.name}`}
                           onClick={() => remove(item.id)}
                         >
-                          🗑️
+                          <IconTrash />
                         </button>
                       </div>
                     </td>
@@ -166,8 +171,8 @@ export default function Accounts() {
           <div className="modal" style={{ maxWidth: '400px' }}>
             <div className="modal-header">
               <span className="modal-title">Confirm Delete</span>
-              <button className="btn btn-ghost btn-icon" onClick={() => setDeleteConfirm(null)}>
-                ✕
+              <button className="btn btn-ghost btn-icon" aria-label="Close dialog" onClick={() => setDeleteConfirm(null)}>
+                <IconClose />
               </button>
             </div>
             <div className="modal-body">
@@ -193,8 +198,8 @@ export default function Accounts() {
           <div className="modal">
             <div className="modal-header">
               <span className="modal-title">{editing ? 'Edit Account' : 'Add Account'}</span>
-              <button className="btn btn-ghost btn-icon" onClick={close}>
-                ✕
+              <button className="btn btn-ghost btn-icon" aria-label="Close dialog" onClick={close}>
+                <IconClose />
               </button>
             </div>
             <div className="modal-body">

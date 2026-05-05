@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../../utils/api.js';
 import { useCurrency } from '../../hooks/useCurrency.jsx';
 import { RECURRENCE_OPTIONS } from '../../utils/categories.js';
+import { IconEdit, IconTrash, IconClose, IconArrowSwap, IconInfo } from '../icons.jsx';
 
 const EMPTY = { source:'', amount:'', date: new Date().toISOString().slice(0,10), recurrence:'one-time', notes:'', account_id: null, is_transfer: false, from_account_id: null, ignore_dashboard: false };
 
@@ -21,6 +22,7 @@ export default function Income() {
   // Selection state
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(new Set());
+  const [lastClickedId, setLastClickedId] = useState(null);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [showBulkEdit, setShowBulkEdit] = useState(false);
   const [bulkForm, setBulkForm] = useState({ recurrence: '', account_id: '', ignore_dashboard: '' });
@@ -117,14 +119,35 @@ export default function Income() {
   const toggleSelectMode = () => {
     setSelectMode(v => !v);
     setSelected(new Set());
+    setLastClickedId(null);
   };
 
-  const toggleItem = (id) => {
+  const handleSelect = (id, shiftKey) => {
+    if (shiftKey && lastClickedId !== null && lastClickedId !== id) {
+      const ids = filtered.map(i => i.id);
+      const lastIdx = ids.indexOf(lastClickedId);
+      const curIdx = ids.indexOf(id);
+      if (lastIdx >= 0 && curIdx >= 0) {
+        const [from, to] = lastIdx < curIdx ? [lastIdx, curIdx] : [curIdx, lastIdx];
+        const range = ids.slice(from, to + 1);
+        const selecting = !selected.has(id);
+        setSelected(prev => {
+          const next = new Set(prev);
+          for (const rid of range) {
+            if (selecting) next.add(rid); else next.delete(rid);
+          }
+          return next;
+        });
+        setLastClickedId(id);
+        return;
+      }
+    }
     setSelected(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+    setLastClickedId(id);
   };
 
   const toggleAll = () => {
@@ -133,6 +156,7 @@ export default function Income() {
     } else {
       setSelected(new Set(filtered.map(i => i.id)));
     }
+    setLastClickedId(null);
   };
 
   const confirmBulkDelete = async () => {
@@ -180,34 +204,40 @@ export default function Income() {
         </div>
       </div>
 
-      <div className="grid-3 mb-4">
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{background:'var(--green-soft)'}}>💰</div>
-          <div className="stat-card-label">Monthly Recurring</div>
-          <div className="stat-card-value text-green">{fmt(totalMonthly)}</div>
+      <div className="dashboard-kpi-bar">
+        <div className="dashboard-kpi dashboard-kpi-primary">
+          <span className="dashboard-kpi-label">Monthly recurring</span>
+          <strong className="dashboard-kpi-value text-green">{fmt(totalMonthly)}</strong>
+          <span className="dashboard-kpi-meta">Income that repeats each month</span>
         </div>
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{background:'var(--blue-soft)'}}>📋</div>
-          <div className="stat-card-label">Total Entries</div>
-          <div className="stat-card-value">{items.length}</div>
+        <div className="dashboard-kpi">
+          <span className="dashboard-kpi-label">Total entries</span>
+          <strong className="dashboard-kpi-value">{items.length}</strong>
+          <span className="dashboard-kpi-meta">Across all time</span>
         </div>
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{background:'var(--blue-soft)'}}>📊</div>
-          <div className="stat-card-label">All Time Total</div>
-          <div className="stat-card-value text-accent">{fmt(totalAllTime)}</div>
+        <div className="dashboard-kpi">
+          <span className="dashboard-kpi-label">All-time total</span>
+          <strong className="dashboard-kpi-value text-accent">{fmt(totalAllTime)}</strong>
+          <span className="dashboard-kpi-meta">Sum of every entry</span>
         </div>
       </div>
 
       <div className="card mb-4">
-        <div className="card-body" style={{display:'flex', gap:12, flexWrap:'wrap', alignItems:'center'}}>
-          <input className="form-input" style={{maxWidth:280}} placeholder="🔍 Search source…"
-            value={search} onChange={e => setSearch(e.target.value)} />
-          <input className="form-input" type="month" style={{maxWidth:200}} value={filterMonth}
-            onChange={e => setFilterMonth(e.target.value)} />
+        <div className="card-body filter-bar">
+          <div className="filter-field">
+            <label className="form-label" htmlFor="income-search">Search source</label>
+            <input id="income-search" className="form-input" placeholder="Salary, freelance…"
+              value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          <div className="filter-field">
+            <label className="form-label" htmlFor="income-month">Month</label>
+            <input id="income-month" className="form-input" type="month" value={filterMonth}
+              onChange={e => setFilterMonth(e.target.value)} />
+          </div>
           {(search || filterMonth) && (
-            <button className="btn btn-ghost btn-sm" onClick={() => { setSearch(''); setFilterMonth(''); }}>Clear</button>
+            <button className="btn btn-ghost btn-sm filter-clear" onClick={() => { setSearch(''); setFilterMonth(''); }}>Clear</button>
           )}
-          <div style={{marginLeft:'auto'}} className="flex items-center gap-2">
+          <div className="filter-summary">
             <span className="text-muted" style={{fontSize:'0.8rem'}}>{filtered.length} entries</span>
             <span className="badge badge-green">{fmt(filteredTotal)}</span>
           </div>
@@ -220,7 +250,9 @@ export default function Income() {
             <div className="empty-state"><div className="spinner" /></div>
           ) : filtered.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">💸</div>
+              <div className="empty-state-icon" aria-hidden="true">
+                <IconArrowSwap width={32} height={32} />
+              </div>
               <h3>{items.length === 0 ? 'No income entries yet' : 'No results'}</h3>
               <p>{items.length === 0 ? 'Add your salary, freelance work, or any income source' : 'Try a different filter'}</p>
             </div>
@@ -230,7 +262,8 @@ export default function Income() {
                 <tr>
                   {selectMode && (
                     <th style={{width:36}}>
-                      <input type="checkbox" style={{width:'auto',margin:0}}
+                      <input type="checkbox" aria-label="Select all"
+                        style={{width:'auto',margin:0}}
                         checked={filtered.length > 0 && selected.size === filtered.length}
                         onChange={toggleAll} />
                     </th>
@@ -240,14 +273,14 @@ export default function Income() {
               </thead>
               <tbody>
                 {filtered.map(item => (
-                  <tr key={item.id} style={selected.has(item.id) ? {background:'var(--blue-soft)'} : undefined}
-                    onClick={selectMode ? () => toggleItem(item.id) : undefined}
-                    className={selectMode ? 'cursor-pointer' : undefined}>
+                  <tr key={item.id} className={`${selectMode ? 'cursor-pointer is-selectable' : ''} ${selected.has(item.id) ? 'is-selected' : ''}`}
+                    onClick={selectMode ? (e) => handleSelect(item.id, e.shiftKey) : undefined}>
                     {selectMode && (
                       <td onClick={e => e.stopPropagation()}>
-                        <input type="checkbox" style={{width:'auto',margin:0}}
+                        <input type="checkbox" aria-label={`Select ${item.source}`}
+                          style={{width:'auto',margin:0}}
                           checked={selected.has(item.id)}
-                          onChange={() => toggleItem(item.id)} />
+                          onChange={(e) => handleSelect(item.id, e.nativeEvent.shiftKey)} />
                       </td>
                     )}
                     <td>
@@ -263,8 +296,12 @@ export default function Income() {
                     <td>
                       {!selectMode && (
                         <div className="flex gap-2">
-                          <button className="btn btn-ghost btn-sm btn-icon" onClick={() => openEdit(item)}>✏️</button>
-                          <button className="btn btn-danger btn-sm btn-icon" onClick={() => remove(item.id)}>🗑️</button>
+                          <button className="btn btn-ghost btn-sm btn-icon" aria-label={`Edit ${item.source}`} onClick={() => openEdit(item)}>
+                            <IconEdit />
+                          </button>
+                          <button className="btn btn-danger btn-sm btn-icon" aria-label={`Delete ${item.source}`} onClick={() => remove(item.id)}>
+                            <IconTrash />
+                          </button>
                         </div>
                       )}
                     </td>
@@ -276,17 +313,12 @@ export default function Income() {
         </div>
       </div>
 
-      {/* Bulk action bar */}
       {selectMode && selected.size > 0 && (
-        <div style={{
-          position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)',
-          background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:12,
-          boxShadow:'0 4px 24px rgba(0,0,0,0.18)', padding:'12px 20px',
-          display:'flex', alignItems:'center', gap:12, zIndex:200, whiteSpace:'nowrap'
-        }}>
-          <span style={{fontWeight:600}}>{selected.size} selected</span>
-          <button className="btn btn-ghost btn-sm" onClick={openBulkEdit}>Edit Fields</button>
-          <button className="btn btn-danger btn-sm" onClick={() => setBulkDeleteConfirm(true)}>Delete Selected</button>
+        <div className="bulk-bar" role="toolbar" aria-label="Bulk actions">
+          <span className="bulk-bar-count">{selected.size} selected</span>
+          <span className="bulk-bar-hint">Shift-click to range-select</span>
+          <button className="btn btn-ghost btn-sm" onClick={openBulkEdit}>Edit fields</button>
+          <button className="btn btn-danger btn-sm" onClick={() => setBulkDeleteConfirm(true)}>Delete selected</button>
         </div>
       )}
 
@@ -295,7 +327,7 @@ export default function Income() {
           <div className="modal" style={{maxWidth: '400px'}}>
             <div className="modal-header">
               <span className="modal-title">Confirm Delete</span>
-              <button className="btn btn-ghost btn-icon" onClick={() => setDeleteConfirm(null)}>✕</button>
+              <button className="btn btn-ghost btn-icon" aria-label="Close dialog" onClick={() => setDeleteConfirm(null)}><IconClose /></button>
             </div>
             <div className="modal-body">
               <p>Are you sure you want to delete this income entry?</p>
@@ -313,7 +345,7 @@ export default function Income() {
           <div className="modal" style={{maxWidth: '400px'}}>
             <div className="modal-header">
               <span className="modal-title">Delete {selected.size} Income Entries</span>
-              <button className="btn btn-ghost btn-icon" onClick={() => setBulkDeleteConfirm(false)}>✕</button>
+              <button className="btn btn-ghost btn-icon" aria-label="Close dialog" onClick={() => setBulkDeleteConfirm(false)}><IconClose /></button>
             </div>
             <div className="modal-body">
               <p>Are you sure you want to delete <strong>{selected.size}</strong> income entr{selected.size !== 1 ? 'ies' : 'y'}? This cannot be undone.</p>
@@ -328,52 +360,47 @@ export default function Income() {
 
       {showBulkEdit && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowBulkEdit(false)}>
-          <div className="modal" style={{maxWidth: '480px'}}>
+          <div className="modal" style={{maxWidth: '520px'}}>
             <div className="modal-header">
-              <span className="modal-title">Edit {selected.size} Income Entries</span>
-              <button className="btn btn-ghost btn-icon" onClick={() => setShowBulkEdit(false)}>✕</button>
+              <span className="modal-title">Edit {selected.size} Income Entr{selected.size !== 1 ? 'ies' : 'y'}</span>
+              <button className="btn btn-ghost btn-icon" aria-label="Close dialog" onClick={() => setShowBulkEdit(false)}><IconClose /></button>
             </div>
             <div className="modal-body">
-              <p style={{color:'var(--text-muted)', fontSize:'0.85rem', marginBottom:16}}>Check a field to apply that change to all selected entries.</p>
+              <p style={{color:'var(--text-muted)', fontSize:'0.85rem', marginBottom:16, marginTop:0}}>
+                Toggle a field to overwrite it across the selected entries. Untouched fields stay as they are.
+              </p>
 
-              <div className="form-group" style={{display:'flex', alignItems:'center', gap:8}}>
-                <input type="checkbox" style={{width:'auto',margin:0}} checked={bulkFields.recurrence}
-                  onChange={e => setBulkFields(f=>({...f, recurrence: e.target.checked}))} />
-                <label className="form-label" style={{margin:0, flex:1}}>Recurrence</label>
-              </div>
-              {bulkFields.recurrence && (
-                <select className="form-select mb-3" value={bulkForm.recurrence}
-                  onChange={e => setBulkForm(f=>({...f, recurrence: e.target.value}))}>
-                  <option value="">-- Select --</option>
-                  {RECURRENCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              )}
+              <div style={{display:'flex', flexDirection:'column', gap:10}}>
+                <BulkField label="Recurrence" hint="How often this income repeats"
+                  active={bulkFields.recurrence}
+                  onToggle={(v) => setBulkFields(f => ({...f, recurrence: v}))}>
+                  <select className="form-select" value={bulkForm.recurrence}
+                    onChange={e => setBulkForm(f=>({...f, recurrence: e.target.value}))}>
+                    <option value="">-- Select --</option>
+                    {RECURRENCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </BulkField>
 
-              <div className="form-group" style={{display:'flex', alignItems:'center', gap:8}}>
-                <input type="checkbox" style={{width:'auto',margin:0}} checked={bulkFields.account_id}
-                  onChange={e => setBulkFields(f=>({...f, account_id: e.target.checked}))} />
-                <label className="form-label" style={{margin:0, flex:1}}>Account</label>
-              </div>
-              {bulkFields.account_id && (
-                <select className="form-select mb-3" value={bulkForm.account_id}
-                  onChange={e => setBulkForm(f=>({...f, account_id: e.target.value}))}>
-                  <option value="">-- No Account --</option>
-                  {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-              )}
+                <BulkField label="Account" hint="Linked account"
+                  active={bulkFields.account_id}
+                  onToggle={(v) => setBulkFields(f => ({...f, account_id: v}))}>
+                  <select className="form-select" value={bulkForm.account_id}
+                    onChange={e => setBulkForm(f=>({...f, account_id: e.target.value}))}>
+                    <option value="">-- No Account --</option>
+                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  </select>
+                </BulkField>
 
-              <div className="form-group" style={{display:'flex', alignItems:'center', gap:8}}>
-                <input type="checkbox" style={{width:'auto',margin:0}} checked={bulkFields.ignore_dashboard}
-                  onChange={e => setBulkFields(f=>({...f, ignore_dashboard: e.target.checked}))} />
-                <label className="form-label" style={{margin:0, flex:1}}>Dashboard visibility</label>
+                <BulkField label="Dashboard Visibility" hint="Include or exclude from totals"
+                  active={bulkFields.ignore_dashboard}
+                  onToggle={(v) => setBulkFields(f => ({...f, ignore_dashboard: v}))}>
+                  <select className="form-select" value={bulkForm.ignore_dashboard}
+                    onChange={e => setBulkForm(f=>({...f, ignore_dashboard: e.target.value}))}>
+                    <option value="false">Show on Dashboard</option>
+                    <option value="true">Hide from Dashboard</option>
+                  </select>
+                </BulkField>
               </div>
-              {bulkFields.ignore_dashboard && (
-                <select className="form-select mb-3" value={bulkForm.ignore_dashboard}
-                  onChange={e => setBulkForm(f=>({...f, ignore_dashboard: e.target.value}))}>
-                  <option value="false">Show on Dashboard</option>
-                  <option value="true">Hide from Dashboard</option>
-                </select>
-              )}
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowBulkEdit(false)}>Cancel</button>
@@ -390,7 +417,7 @@ export default function Income() {
           <div className="modal">
             <div className="modal-header">
               <span className="modal-title">{editing ? 'Edit Income' : 'Add Income'}</span>
-              <button className="btn btn-ghost btn-icon" onClick={close}>✕</button>
+              <button className="btn btn-ghost btn-icon" aria-label="Close dialog" onClick={close}><IconClose /></button>
             </div>
             <div className="modal-body">
               <div className="form-row">
@@ -435,8 +462,9 @@ export default function Income() {
               <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '1rem' }}>
                 <input type="checkbox" id="income-is-transfer" checked={!!form.is_transfer}
                   onChange={e => setForm(f=>({...f, is_transfer: e.target.checked}))} style={{ width: 'auto', margin: 0 }} />
-                <label htmlFor="income-is-transfer" style={{ margin: 0, fontWeight: 'bold', cursor: 'pointer', color: 'var(--blue)' }} className="form-label">
-                  🔄 Mark as Transfer between accounts
+                <label htmlFor="income-is-transfer" style={{ margin: 0, fontWeight: 'bold', cursor: 'pointer', color: 'var(--blue)', display:'inline-flex', alignItems:'center', gap:8 }} className="form-label">
+                  <IconArrowSwap />
+                  Mark as Transfer between accounts
                 </label>
               </div>
 
@@ -453,8 +481,9 @@ export default function Income() {
               {form.is_transfer && (
                 <div className="form-group" style={{ padding: '12px', background: 'var(--bg-body)', borderRadius: '8px', border: '1px solid var(--border)', marginTop: '0.5rem' }}>
                   {editing?.is_transfer ? (
-                    <div style={{color: 'var(--text-muted)', fontSize: '0.85rem'}}>
-                      ℹ️ This is a transfer record. Editing it here will only update this side of the transaction.
+                    <div style={{color: 'var(--text-muted)', fontSize: '0.85rem', display:'flex', alignItems:'flex-start', gap:8}}>
+                      <IconInfo />
+                      <span>This is a transfer record. Editing it here will only update this side of the transaction.</span>
                     </div>
                   ) : (
                     <>
@@ -476,6 +505,33 @@ export default function Income() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BulkField({ label, hint, active, onToggle, children }) {
+  return (
+    <div style={{
+      border: `1px solid ${active ? 'var(--border-accent)' : 'var(--border)'}`,
+      background: active ? 'rgba(var(--accent-rgb), 0.05)' : 'transparent',
+      borderRadius: 10,
+      padding: 12,
+      transition: 'border-color 0.15s, background 0.15s'
+    }}>
+      <label style={{display:'flex', alignItems:'center', gap:10, cursor:'pointer', margin:0}}>
+        <input type="checkbox" checked={active}
+          onChange={e => onToggle(e.target.checked)}
+          style={{width:'auto', margin:0}} />
+        <div style={{flex:1}}>
+          <div style={{fontWeight:600, fontSize:'0.88rem', color:'var(--text-primary)'}}>{label}</div>
+          {hint && <div style={{fontSize:'0.74rem', color:'var(--text-muted)', marginTop:2}}>{hint}</div>}
+        </div>
+      </label>
+      {active && (
+        <div style={{marginTop:10}}>
+          {children}
         </div>
       )}
     </div>

@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../../utils/api.js';
 import { useCurrency } from '../../hooks/useCurrency.jsx';
 import { CATEGORIES, CYCLE_OPTIONS } from '../../utils/categories.js';
+import { IconEdit, IconTrash, IconClose, IconRecurring } from '../icons.jsx';
 import './Subscriptions.css';
 
 const EMPTY = { name:'', amount:'', cycle:'monthly', category:'Subscriptions', renewal_date:'', notes:'', active:1 };
@@ -65,37 +66,36 @@ export default function Subscriptions() {
         <button className="btn btn-primary" id="add-sub-btn" onClick={openAdd}>+ Add Subscription</button>
       </div>
 
-      <div className="grid-3 mb-4">
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{background:'var(--blue-soft)'}}>📱</div>
-          <div className="stat-card-label">Monthly Cost</div>
-          <div className="stat-card-value" style={{color:'var(--accent-2)'}}>{fmt(monthlyTotal)}</div>
-          <div className="stat-card-sub">{items.filter(s=>s.active).length} active</div>
+      <div className="dashboard-kpi-bar">
+        <div className="dashboard-kpi dashboard-kpi-primary">
+          <span className="dashboard-kpi-label">Monthly cost</span>
+          <strong className="dashboard-kpi-value text-accent">{fmt(monthlyTotal)}</strong>
+          <span className="dashboard-kpi-meta">{items.filter(s=>s.active).length} active</span>
         </div>
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{background:'var(--yellow-soft)'}}>📅</div>
-          <div className="stat-card-label">Yearly Cost</div>
-          <div className="stat-card-value text-yellow">{fmt(yearlyTotal)}</div>
-          <div className="stat-card-sub">Projected annual spend</div>
+        <div className="dashboard-kpi">
+          <span className="dashboard-kpi-label">Yearly cost</span>
+          <strong className="dashboard-kpi-value text-yellow">{fmt(yearlyTotal)}</strong>
+          <span className="dashboard-kpi-meta">Projected annual spend</span>
         </div>
-        <div className="stat-card">
-          <div className="stat-card-icon" style={{background:'rgba(255,255,255,0.06)'}}>💤</div>
-          <div className="stat-card-label">Paused</div>
-          <div className="stat-card-value text-muted">{items.filter(s=>!s.active).length}</div>
-          <div className="stat-card-sub">Inactive subscriptions</div>
+        <div className="dashboard-kpi">
+          <span className="dashboard-kpi-label">Paused</span>
+          <strong className="dashboard-kpi-value text-muted">{items.filter(s=>!s.active).length}</strong>
+          <span className="dashboard-kpi-meta">Inactive subscriptions</span>
         </div>
       </div>
 
       <div className="card">
         <div className="card-header">
-          <span className="card-title">🔄 All Subscriptions</span>
+          <span className="card-title">All subscriptions</span>
         </div>
         <div className="sub-grid">
           {loading ? (
             <div className="empty-state"><div className="spinner" /></div>
           ) : items.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">📱</div>
+              <div className="empty-state-icon" aria-hidden="true">
+                <IconRecurring width={32} height={32} />
+              </div>
               <h3>No subscriptions yet</h3>
               <p>Add Netflix, Spotify, or any recurring charge</p>
             </div>
@@ -122,10 +122,10 @@ export default function Subscriptions() {
                   <div className="sub-card-actions">
                     <button className={`btn btn-sm ${item.active ? 'btn-secondary' : 'btn-ghost'}`}
                       onClick={() => toggle(item)}>
-                      {item.active ? '⏸ Pause' : '▶ Resume'}
+                      {item.active ? 'Pause' : 'Resume'}
                     </button>
-                    <button className="btn btn-ghost btn-sm btn-icon" onClick={() => openEdit(item)}>✏️</button>
-                    <button className="btn btn-danger btn-sm btn-icon" onClick={() => remove(item.id)}>🗑️</button>
+                    <button className="btn btn-ghost btn-sm btn-icon" aria-label={`Edit ${item.name}`} onClick={() => openEdit(item)}><IconEdit /></button>
+                    <button className="btn btn-danger btn-sm btn-icon" aria-label={`Delete ${item.name}`} onClick={() => remove(item.id)}><IconTrash /></button>
                   </div>
                 </div>
               );
@@ -139,7 +139,7 @@ export default function Subscriptions() {
           <div className="modal" style={{maxWidth: '400px'}}>
             <div className="modal-header">
               <span className="modal-title">Confirm Delete</span>
-              <button className="btn btn-ghost btn-icon" onClick={() => setDeleteConfirm(null)}>✕</button>
+              <button className="btn btn-ghost btn-icon" aria-label="Close dialog" onClick={() => setDeleteConfirm(null)}><IconClose /></button>
             </div>
             <div className="modal-body">
               <p>Are you sure you want to delete this subscription?</p>
@@ -157,7 +157,7 @@ export default function Subscriptions() {
           <div className="modal">
             <div className="modal-header">
               <span className="modal-title">{editing ? 'Edit Subscription' : 'Add Subscription'}</span>
-              <button className="btn btn-ghost btn-icon" onClick={close}>✕</button>
+              <button className="btn btn-ghost btn-icon" aria-label="Close dialog" onClick={close}><IconClose /></button>
             </div>
             <div className="modal-body">
               <div className="form-group">

@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../utils/api.js';
 import { useCurrency } from '../../hooks/useCurrency.jsx';
 import { CATEGORIES, getCategoryColor } from '../../utils/categories.js';
+import { IconEdit, IconTrash, IconClose, IconTarget } from '../icons.jsx';
 
 export default function BudgetGoals() {
   const { fmt } = useCurrency();
@@ -66,14 +67,16 @@ export default function BudgetGoals() {
 
       <div className="card mb-4">
         <div className="card-header">
-          <span className="card-title">🎯 Monthly Limits — {new Date().toLocaleString('en', {month:'long', year:'numeric'})}</span>
+          <span className="card-title">Monthly limits — {new Date().toLocaleString('en', {month:'long', year:'numeric'})}</span>
         </div>
         <div className="card-body" style={{display:'flex', flexDirection:'column', gap:20}}>
           {loading ? (
             <div className="empty-state"><div className="spinner" /></div>
           ) : goals.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">🎯</div>
+              <div className="empty-state-icon" aria-hidden="true">
+                <IconTarget width={32} height={32} />
+              </div>
               <h3>No budget goals yet</h3>
               <p>Set monthly limits per category to track your spending</p>
             </div>
@@ -101,8 +104,8 @@ export default function BudgetGoals() {
                         {fmt(spent)} / {fmt(goal.monthly_limit)}
                       </span>
                       <span style={{fontSize:'0.8rem', color, fontWeight:600}}>{pct.toFixed(0)}%</span>
-                      <button className="btn btn-ghost btn-sm btn-icon" onClick={() => openEdit(goal)}>✏️</button>
-                      <button className="btn btn-danger btn-sm btn-icon" onClick={() => remove(goal.id)}>🗑️</button>
+                      <button className="btn btn-ghost btn-sm btn-icon" aria-label={`Edit ${goal.category} goal`} onClick={() => openEdit(goal)}><IconEdit /></button>
+                      <button className="btn btn-danger btn-sm btn-icon" aria-label={`Delete ${goal.category} goal`} onClick={() => remove(goal.id)}><IconTrash /></button>
                     </div>
                   </div>
                   <div className="progress-bar-track">
@@ -127,7 +130,7 @@ export default function BudgetGoals() {
           <div className="modal" style={{maxWidth: '400px'}}>
             <div className="modal-header">
               <span className="modal-title">Confirm Delete</span>
-              <button className="btn btn-ghost btn-icon" onClick={() => setDeleteConfirm(null)}>✕</button>
+              <button className="btn btn-ghost btn-icon" aria-label="Close dialog" onClick={() => setDeleteConfirm(null)}><IconClose /></button>
             </div>
             <div className="modal-body">
               <p>Are you sure you want to delete this budget goal?</p>
@@ -145,7 +148,7 @@ export default function BudgetGoals() {
           <div className="modal">
             <div className="modal-header">
               <span className="modal-title">{editing ? 'Edit Budget Goal' : 'Add Budget Goal'}</span>
-              <button className="btn btn-ghost btn-icon" onClick={close}>✕</button>
+              <button className="btn btn-ghost btn-icon" aria-label="Close dialog" onClick={close}><IconClose /></button>
             </div>
             <div className="modal-body">
               <div className="form-group">

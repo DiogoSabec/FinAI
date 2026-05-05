@@ -4,11 +4,9 @@
   padding: 76px 40px;
   border-radius: 32px;
   border: 1px dashed rgba(var(--accent-2-rgb), 0.28);
-  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.06) 0%, rgba(var(--accent-2-rgb), 0.04) 100%);
   text-align: center;
   cursor: pointer;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition), background var(--transition);
 }
 
@@ -31,12 +29,20 @@
 }
 
 .csv-dropzone-icon {
-  font-size: 3.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
   margin-bottom: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(var(--accent-rgb), 0.18);
+  background: rgba(var(--accent-rgb), 0.06);
+  color: var(--accent-1);
 }
 
 .csv-dropzone-title {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: 'Spectral', serif;
   font-size: 2.3rem;
   font-weight: 600;
   color: var(--text-primary);

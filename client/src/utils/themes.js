@@ -1,12 +1,12 @@
 export const THEME_STORAGE_KEY = 'accent-theme';
 
 export const ACCENT_THEMES = [
-  { id: 'gold',    name: 'Gold',    color1: '#d4af37', color2: '#f4df9b', color3: '#8d6a21', textPrimary: '#f6f0dd', textSecondary: '#cfbf93', textMuted: '#8d825f' },
-  { id: 'emerald', name: 'Emerald', color1: '#34d399', color2: '#a7f3d0', color3: '#059669', textPrimary: '#eaf4f0', textSecondary: '#92b4a4', textMuted: '#5a7870' },
-  { id: 'sapphire',name: 'Sapphire',color1: '#60a5fa', color2: '#bfdbfe', color3: '#2563eb', textPrimary: '#e8eff8', textSecondary: '#8aaec4', textMuted: '#566c80' },
-  { id: 'rose',    name: 'Rose',    color1: '#f472b6', color2: '#fbcfe8', color3: '#be185d', textPrimary: '#f8eef4', textSecondary: '#c49ab0', textMuted: '#7a5e6e' },
-  { id: 'violet',  name: 'Violet',  color1: '#a78bfa', color2: '#ddd6fe', color3: '#6d28d9', textPrimary: '#f0ecf8', textSecondary: '#a89ac4', textMuted: '#6a6080' },
-  { id: 'crimson', name: 'Crimson', color1: '#f87171', color2: '#fecaca', color3: '#b91c1c', textPrimary: '#f8eeee', textSecondary: '#c09898', textMuted: '#785858' },
+  { id: 'gold',    name: 'Gold',    color1: '#d4af37', color2: '#f4df9b', color3: '#8d6a21', textPrimary: '#f6f0dd', textSecondary: '#cfbf93', textMuted: '#8d825f', expense: '#d66b52' },
+  { id: 'emerald', name: 'Emerald', color1: '#34d399', color2: '#a7f3d0', color3: '#059669', textPrimary: '#eaf4f0', textSecondary: '#92b4a4', textMuted: '#5a7870', expense: '#d66b52' },
+  { id: 'sapphire',name: 'Sapphire',color1: '#60a5fa', color2: '#bfdbfe', color3: '#2563eb', textPrimary: '#e8eff8', textSecondary: '#8aaec4', textMuted: '#566c80', expense: '#d66b52' },
+  { id: 'rose',    name: 'Rose',    color1: '#f472b6', color2: '#fbcfe8', color3: '#be185d', textPrimary: '#f8eef4', textSecondary: '#c49ab0', textMuted: '#7a5e6e', expense: '#b85240' },
+  { id: 'violet',  name: 'Violet',  color1: '#a78bfa', color2: '#ddd6fe', color3: '#6d28d9', textPrimary: '#f0ecf8', textSecondary: '#a89ac4', textMuted: '#6a6080', expense: '#d66b52' },
+  { id: 'crimson', name: 'Crimson', color1: '#f87171', color2: '#fecaca', color3: '#b91c1c', textPrimary: '#f8eeee', textSecondary: '#c09898', textMuted: '#785858', expense: '#b85240' },
 ];
 
 function hexToRgb(hex) {

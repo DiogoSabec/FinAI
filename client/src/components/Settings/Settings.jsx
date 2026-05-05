@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../../utils/api.js';
 import { useCurrency } from '../../hooks/useCurrency.jsx';
 import { CURRENCIES } from '../../utils/categories.js';
 import { ACCENT_THEMES, THEME_STORAGE_KEY, applyAccentTheme } from '../../utils/themes.js';
 import { useTheme } from '../../hooks/useTheme.jsx';
+import { IconClose } from '../icons.jsx';
 
 const RESET_CONFIRMATION = 'RESET-ALL-DATA';
 
@@ -203,8 +204,8 @@ export default function Settings() {
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowConfirm(false)}>
           <div className="modal" style={{maxWidth: '500px'}}>
             <div className="modal-header">
-              <span className="modal-title text-red">⚠️ Confirm Full Reset</span>
-              <button className="btn btn-ghost btn-icon" onClick={() => setShowConfirm(false)}>✕</button>
+              <span className="modal-title text-red">Confirm full reset</span>
+              <button className="btn btn-ghost btn-icon" aria-label="Close dialog" onClick={() => setShowConfirm(false)}><IconClose /></button>
             </div>
             <div className="modal-body">
               <p>WARNING: This will permanently delete ALL data (Accounts, Income, Expenses, Subscriptions, Goals) and reset all settings. This action cannot be undone.</p>

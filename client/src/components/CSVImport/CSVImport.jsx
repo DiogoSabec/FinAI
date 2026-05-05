@@ -135,11 +135,10 @@ export default function CSVImport() {
 
       {stage === 'upload' && (
         <>
-          <div className="card mb-4" style={{padding:20, borderColor:'var(--border-accent)', background:'var(--accent-gradient-soft)'}}>
+          <div className="card mb-4" style={{padding:20, borderColor:'var(--border-accent)', background:'rgba(var(--accent-rgb), 0.04)'}}>
             <div style={{display:'flex', gap:12, alignItems:'flex-start'}}>
-              <span style={{fontSize:'1.5rem'}}>💡</span>
               <div>
-                <div style={{fontWeight:600, marginBottom:4}}>Nubank Format</div>
+                <div style={{fontWeight:600, marginBottom:4}}>Nubank format</div>
                 <div style={{fontSize:'0.85rem', color:'var(--text-secondary)'}}>
                   Export from <strong>Nubank app → Minha conta → Extrato → Exportar CSV</strong>.
                   The file should have columns: <code style={{background:'var(--bg-input)',padding:'1px 6px',borderRadius:4,fontSize:'0.8rem'}}>date, category, title, amount</code>
@@ -156,7 +155,13 @@ export default function CSVImport() {
             onClick={() => fileRef.current.click()}
           >
             <input ref={fileRef} type="file" accept=".csv" style={{display:'none'}} onChange={onFile} id="csv-file-input" />
-            <div className="csv-dropzone-icon">📁</div>
+            <div className="csv-dropzone-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="26" height="26">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
             <div className="csv-dropzone-title">Drop your CSV file here</div>
             <div className="csv-dropzone-sub">or click to browse • .csv files only</div>
           </div>
@@ -169,7 +174,7 @@ export default function CSVImport() {
           <div className="card mb-4">
             <div className="card-header">
               <span className="card-title">
-                📋 Preview — {edited.length} rows detected
+                Preview — {edited.length} rows detected
               </span>
               <div className="flex gap-2">
                 <button className="btn btn-secondary btn-sm" onClick={reset}>← Back</button>
@@ -179,7 +184,7 @@ export default function CSVImport() {
                   onClick={suggestCategories} 
                   disabled={suggesting || importing}
                 >
-                  {suggesting ? <span className="spinner" style={{width:14,height:14}} /> : aiMeta ? '✨ Suggest Again' : '✨ Suggest Categories'}
+                  {suggesting ? <span className="spinner" style={{width:14,height:14}} /> : aiMeta ? 'Suggest again' : 'Suggest categories'}
                 </button>
                 <button id="confirm-import-btn" className="btn btn-primary btn-sm" onClick={doImport} disabled={importing || suggesting || edited.length === 0}>
                   {importing ? <span className="spinner" /> : `Import ${edited.length} rows`}
@@ -261,7 +266,7 @@ export default function CSVImport() {
                           value={row.amount} onChange={e => updateRow(i, 'amount', e.target.value)} />
                       </td>
                       <td>
-                        <button className="btn btn-danger btn-sm btn-icon" onClick={() => removeRow(i)}>✕</button>
+                        <button className="btn btn-danger btn-sm btn-icon" aria-label={`Remove row ${i + 1}`} onClick={() => removeRow(i)}>✕</button>
                       </td>
                     </tr>
                   ))}
@@ -274,8 +279,7 @@ export default function CSVImport() {
 
       {stage === 'done' && result && (
         <div className="card" style={{textAlign:'center', padding:48}}>
-          <div style={{fontSize:'4rem',marginBottom:16}}>🎉</div>
-          <h2 style={{marginBottom:8}}>Import Complete!</h2>
+          <h2 style={{marginBottom:8}}>Import complete</h2>
           <p style={{color:'var(--text-secondary)', marginBottom:24}}>
             <strong className="text-green">{result.imported}</strong> records imported ·{' '}
             <strong className="text-muted">{result.skipped}</strong> duplicates skipped
