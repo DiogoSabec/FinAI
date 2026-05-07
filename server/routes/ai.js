@@ -1,6 +1,12 @@
 import express from 'express';
 import { all, get } from '../db.js';
 import { handleRouteError, HttpError } from '../http.js';
+
+function getGeminiApiKey() {
+  const fromDb = get("SELECT value FROM settings WHERE key = 'gemini_api_key'")?.value;
+  const candidate = fromDb && String(fromDb).trim() ? fromDb : process.env.GEMINI_API_KEY;
+  return candidate ? String(candidate).trim() : '';
+}
 import {
   MAX_AI_SUGGESTION_ITEMS,
   assertMaxItems,
@@ -259,9 +265,9 @@ function buildFinancialContext() {
 router.post('/chat', async (req, res) => {
   try {
     const message = parseRequiredString('message', req.body?.message, { max: MAX_CHAT_MESSAGE_LENGTH });
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = getGeminiApiKey();
 
-    if (!apiKey || apiKey.trim() === '') {
+    if (!apiKey) {
       throw new HttpError(503, 'Gemini API key not configured');
     }
 
@@ -346,9 +352,9 @@ router.get('/ping', (req, res) => res.json({ status: 'ai router ok' }));
 router.post('/suggest-categories', async (req, res) => {
   try {
     const rawExpenses = assertMaxItems(req.body?.expenses, MAX_AI_SUGGESTION_ITEMS, 'expenses');
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = getGeminiApiKey();
 
-    if (!apiKey || apiKey.trim() === '') {
+    if (!apiKey) {
       throw new HttpError(503, 'Gemini API key not configured');
     }
 

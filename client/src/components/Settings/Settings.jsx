@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../../utils/api.js';
 import { useCurrency } from '../../hooks/useCurrency.jsx';
 import { CURRENCIES } from '../../utils/categories.js';
@@ -17,6 +17,13 @@ export default function Settings() {
   const [clearing, setClearing] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [accentTheme, setAccentTheme] = useState(() => localStorage.getItem(THEME_STORAGE_KEY) ?? 'gold');
+  const [geminiKey, setGeminiKey]       = useState('');
+  const [showGeminiKey, setShowGeminiKey] = useState(false);
+  const [savingKey, setSavingKey]       = useState(false);
+  const [keySaved, setKeySaved]         = useState(false);
+  const [importing, setImporting]       = useState(false);
+  const [importConfirm, setImportConfirm] = useState(null);
+  const fileInputRef = useRef(null);
 
   const handleThemeChange = (id) => {
     setAccentTheme(id);
@@ -42,8 +49,69 @@ export default function Settings() {
   };
 
   useEffect(() => {
-    api.get('/settings').then(s => { setSettings(s); }).catch(() => {});
+    api.get('/settings').then(s => {
+      setSettings(s);
+      setGeminiKey(s?.gemini_api_key ?? '');
+    }).catch(() => {});
   }, []);
+
+  const exportBackup = () => {
+    const link = document.createElement('a');
+    link.href = '/api/backup/export';
+    link.download = `finai-backup-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleImportFileChange = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setImportConfirm(file);
+  };
+
+  const runImport = async () => {
+    const file = importConfirm;
+    setImportConfirm(null);
+    if (!file) return;
+
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const res = await fetch('/api/backup/import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/csv',
+          'X-Finance-App-Request': '1',
+          'X-Reset-Confirmation': RESET_CONFIRMATION,
+        },
+        body: text,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || `Import failed (HTTP ${res.status})`);
+      }
+      window.location.href = '/';
+    } catch (e) {
+      alert('Failed to import backup: ' + e.message);
+      setImporting(false);
+    }
+  };
+
+  const saveGeminiKey = async () => {
+    setSavingKey(true);
+    try {
+      const updated = await api.put('/settings', { gemini_api_key: geminiKey.trim() });
+      setGeminiKey(updated?.gemini_api_key ?? '');
+      setKeySaved(true);
+      setTimeout(() => setKeySaved(false), 2500);
+    } catch (e) {
+      alert('Failed to save API key: ' + e.message);
+    } finally {
+      setSavingKey(false);
+    }
+  };
 
   const handleCurrencyChange = (e) => {
     const cur = CURRENCIES.find(c => c.code === e.target.value);
@@ -53,7 +121,7 @@ export default function Settings() {
   const save = async () => {
     setSaving(true);
     try {
-      const updated = await api.put('/settings', settings);
+      const updated = await api.put('/settings', { currency: settings.currency });
       setSymbol(updated.currency_symbol);
       setCode(updated.currency);
       setSaved(true);
@@ -104,14 +172,46 @@ export default function Settings() {
               <li>Visit <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{color:'var(--text-accent)'}}>aistudio.google.com/app/apikey</a></li>
               <li>Sign in with your Google account</li>
               <li>Click <strong style={{color:'var(--text-primary)'}}>Create API Key</strong></li>
-              <li>Copy the key and add it to your <code style={{background:'var(--bg-input)',padding:'1px 6px',borderRadius:4}}>.env</code> file:</li>
+              <li>Copy the key and paste it below — it’s stored locally in your database.</li>
             </ol>
-            <div style={{background:'var(--bg-base)', borderRadius:'var(--radius-sm)', padding:'10px 14px', marginTop:12, fontFamily:'monospace', fontSize:'0.85rem', color:'var(--text-accent)', border:'1px solid var(--border)'}}>
-              GEMINI_API_KEY=your_key_here
-            </div>
             <div style={{fontSize:'0.78rem', color:'var(--text-muted)', marginTop:8}}>
-              Free tier: 1,500 requests/day — more than enough for personal use. Restart the server after adding the key.
+              Free tier: 1,500 requests/day — more than enough for personal use.
             </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="gemini-key-input">Gemini API Key</label>
+            <div style={{display:'flex', gap:8, alignItems:'stretch'}}>
+              <input
+                id="gemini-key-input"
+                type={showGeminiKey ? 'text' : 'password'}
+                className="form-input"
+                value={geminiKey}
+                onChange={(e) => setGeminiKey(e.target.value)}
+                placeholder="Paste your Gemini API key"
+                autoComplete="off"
+                spellCheck={false}
+                style={{flex:1, fontFamily:'monospace'}}
+              />
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setShowGeminiKey(v => !v)}
+                aria-label={showGeminiKey ? 'Hide API key' : 'Show API key'}
+              >
+                {showGeminiKey ? 'Hide' : 'Show'}
+              </button>
+            </div>
+            <div style={{fontSize:'0.78rem', color:'var(--text-muted)', marginTop:6}}>
+              Stored locally in your database. Leave empty to disable AI features.
+            </div>
+          </div>
+
+          <div style={{display:'flex', alignItems:'center', gap:12}}>
+            <button className="btn btn-primary" onClick={saveGeminiKey} disabled={savingKey}>
+              {savingKey ? <span className="spinner" /> : 'Save API Key'}
+            </button>
+            {keySaved && <span className="badge badge-green">✓ Saved</span>}
           </div>
         </div>
       </div>
@@ -128,6 +228,27 @@ export default function Settings() {
             <span className="badge badge-green">✓ Local-First</span>
             <span className="badge badge-muted">No Account Required</span>
             <span className="badge badge-muted">AI Uses Internet</span>
+          </div>
+
+          <div style={{height:1, background:'var(--border)', margin:'4px 0'}} />
+
+          <div style={{fontSize:'0.875rem', color:'var(--text-secondary)'}}>
+            Backup all your data to a single CSV file, or restore from a previous backup. Importing replaces all current data.
+          </div>
+          <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
+            <button className="btn btn-secondary" onClick={exportBackup} disabled={importing}>
+              Export Backup (CSV)
+            </button>
+            <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={importing}>
+              {importing ? <span className="spinner" /> : 'Import Backup (CSV)'}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              style={{display:'none'}}
+              onChange={handleImportFileChange}
+            />
           </div>
         </div>
       </div>
@@ -199,6 +320,25 @@ export default function Settings() {
           </div>
         </div>
       </div>
+
+      {importConfirm && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setImportConfirm(null)}>
+          <div className="modal" style={{maxWidth: '500px'}}>
+            <div className="modal-header">
+              <span className="modal-title text-red">Confirm restore from backup</span>
+              <button className="btn btn-ghost btn-icon" aria-label="Close dialog" onClick={() => setImportConfirm(null)}><IconClose /></button>
+            </div>
+            <div className="modal-body">
+              <p>Importing <strong>{importConfirm.name}</strong> will replace ALL existing data — accounts, income, expenses, subscriptions, goals, and settings.</p>
+              <p style={{marginTop: 10, fontWeight: 600}}>This cannot be undone. Continue?</p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setImportConfirm(null)}>Cancel</button>
+              <button className="btn btn-danger" onClick={runImport}>Replace All Data</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showConfirm && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowConfirm(false)}>

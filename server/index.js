@@ -66,6 +66,7 @@ initDB().then(async () => {
   const { default: settingsRoutes } = await import('./routes/settings.js');
   const { default: aiRoutes } = await import('./routes/ai.js');
   const { default: accountsRoutes } = await import('./routes/accounts.js');
+  const { default: backupRoutes } = await import('./routes/backup.js');
 
   app.use('/api/income', incomeRoutes);
   app.use('/api/expenses', expensesRoutes);
@@ -74,6 +75,7 @@ initDB().then(async () => {
   app.use('/api/settings', settingsRoutes);
   app.use('/api/ai', aiRoutes);
   app.use('/api/accounts', accountsRoutes);
+  app.use('/api/backup', backupRoutes);
 
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -98,7 +100,7 @@ initDB().then(async () => {
 
   app.listen(PORT, () => {
     console.log(`\n🚀 Finance API running on http://localhost:${PORT}`);
-    console.log(`   Gemini key: ${process.env.GEMINI_API_KEY ? '✅ loaded' : '⚠️  not set — add GEMINI_API_KEY to .env'}\n`);
+    console.log(`   Gemini key (env): ${process.env.GEMINI_API_KEY ? '✅ loaded' : 'not set — configure in app Settings'}\n`);
   });
 }).catch(err => {
   console.error('Failed to initialize DB:', err);

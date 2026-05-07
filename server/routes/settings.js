@@ -20,6 +20,8 @@ function readSettings() {
   return settings;
 }
 
+const GEMINI_API_KEY_MAX_LENGTH = 200;
+
 function parseSettingsUpdates(input) {
   const updates = ensurePlainObject(input);
   const parsedUpdates = {};
@@ -28,6 +30,14 @@ function parseSettingsUpdates(input) {
     const currency = parseEnum('currency', updates.currency, CURRENCY_CODE_SET);
     parsedUpdates.currency = currency;
     parsedUpdates.currency_symbol = CURRENCY_SYMBOL_BY_CODE[currency];
+  }
+
+  if (updates.gemini_api_key !== undefined) {
+    const raw = String(updates.gemini_api_key ?? '').trim();
+    if (raw.length > GEMINI_API_KEY_MAX_LENGTH) {
+      throw new HttpError(400, `gemini_api_key must be ${GEMINI_API_KEY_MAX_LENGTH} characters or fewer`);
+    }
+    parsedUpdates.gemini_api_key = raw;
   }
 
   if (Object.keys(parsedUpdates).length === 0) {

@@ -50,7 +50,7 @@ export default function AIAdvisor() {
     } catch (e) {
       if (e.message.includes('not configured') || e.message.includes('503')) {
         setApiMissing(true);
-        setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Gemini API key not set. Add your GEMINI_API_KEY to the .env file in the project root and restart the server.\n\nGet a free key at: https://aistudio.google.com/app/apikey' }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Gemini API key not set. Open Settings → AI Advisor Setup and paste your key.\n\nGet a free key at: https://aistudio.google.com/app/apikey' }]);
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: `Sorry, I ran into an error: ${e.message}` }]);
       }
@@ -72,7 +72,7 @@ export default function AIAdvisor() {
 
       {apiMissing && (
         <div style={{background:'var(--yellow-soft)', border:'1px solid rgba(245,158,11,0.3)', borderRadius:'var(--radius-md)', padding:'12px 16px', marginBottom:16, fontSize:'0.85rem', color:'var(--yellow)'}}>
-          <strong>Setup required:</strong> Add <code style={{background:'rgba(0,0,0,0.2)',padding:'1px 6px',borderRadius:4}}>GEMINI_API_KEY=your_key</code> to your <code>.env</code> file and restart the server. Free key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{color:'inherit'}}>aistudio.google.com</a>
+          <strong>Setup required:</strong> Open <strong>Settings → AI Advisor Setup</strong> and paste your Gemini API key. Free key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{color:'inherit'}}>aistudio.google.com</a>
         </div>
       )}
 
