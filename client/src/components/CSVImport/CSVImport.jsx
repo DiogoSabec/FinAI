@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Papa from 'papaparse';
-import { parseNubankCSV } from '../../utils/csvNubank.js';
+import { parseBankCSV } from '../../utils/csvBank.js';
 import { CATEGORIES } from '../../utils/categories.js';
 import { api } from '../../utils/api.js';
 import './CSVImport.css';
@@ -29,8 +29,8 @@ export default function CSVImport() {
       skipEmptyLines: true,
       complete: (res) => {
         if (!res.data?.length) { setError('CSV appears to be empty.'); return; }
-        const rows = parseNubankCSV(res.data);
-        if (!rows.length) { setError('Could not detect valid rows. Make sure this is a Nubank CSV export.'); return; }
+        const rows = parseBankCSV(res.data);
+        if (!rows.length) { setError('Could not detect valid rows. Make sure your CSV has date, amount, and description columns.'); return; }
         setEdited(rows.map((r, i) => ({ ...r, _id: i })));
         setStage('preview');
       },
@@ -130,7 +130,7 @@ export default function CSVImport() {
     <div className="page-content">
       <div className="page-header">
         <h1>Import CSV</h1>
-        <p>Import expenses from Nubank or other bank exports</p>
+        <p>Import transactions from any bank's CSV export</p>
       </div>
 
       {stage === 'upload' && (
@@ -138,10 +138,11 @@ export default function CSVImport() {
           <div className="card mb-4" style={{padding:20, borderColor:'var(--border-accent)', background:'rgba(var(--accent-rgb), 0.04)'}}>
             <div style={{display:'flex', gap:12, alignItems:'flex-start'}}>
               <div>
-                <div style={{fontWeight:600, marginBottom:4}}>Nubank format</div>
+                <div style={{fontWeight:600, marginBottom:4}}>Supported CSV format</div>
                 <div style={{fontSize:'0.85rem', color:'var(--text-secondary)'}}>
-                  Export from <strong>Nubank app → Minha conta → Extrato → Exportar CSV</strong>.
-                  The file should have columns: <code style={{background:'var(--bg-input)',padding:'1px 6px',borderRadius:4,fontSize:'0.8rem'}}>date, category, title, amount</code>
+                  Export your statement as CSV from any bank or credit-card provider.
+                  The file needs at least: <code style={{background:'var(--bg-input)',padding:'1px 6px',borderRadius:4,fontSize:'0.8rem'}}>date, amount, description</code>
+                  {' '}— a <code style={{background:'var(--bg-input)',padding:'1px 6px',borderRadius:4,fontSize:'0.8rem'}}>category</code> column is optional. Common English and Portuguese column names are auto-detected.
                 </div>
               </div>
             </div>

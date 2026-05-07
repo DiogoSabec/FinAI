@@ -37,7 +37,7 @@ It runs in the browser **and** ships as a desktop app via Electron.
 - **Accounts** — multiple accounts with transfers between them
 - **Income / Expenses / Subscriptions** — month + search filtering, batch edit
 - **Budget Goals** — set monthly targets per category
-- **CSV Import** — bulk import Nubank statements (income + expenses) with AI-assisted category suggestions
+- **CSV Import** — bulk import bank or credit-card statements (income + expenses) with AI-assisted category suggestions
 - **AI Advisor** — context-aware chat (Google Gemini) with Markdown rendering and history
 - **Backup & restore** — export/import the full SQLite database; reset on demand
 - **Themes** — light & dark mode with persistent preference
@@ -118,7 +118,7 @@ Dashboard · Accounts · Income · Expenses · Subscriptions · CSV Import · Bu
 │   └── src/
 │       ├── components/   # Dashboard, Accounts, Expenses, Income, …
 │       ├── hooks/        # useCurrency, useTheme
-│       └── utils/        # api, categories, csvNubank, themes
+│       └── utils/        # api, categories, csvBank, themes
 ├── server/          # Express API + SQLite setup
 │   └── routes/      # accounts, expenses, income, goals, subscriptions
 ├── electron/        # Electron main process
