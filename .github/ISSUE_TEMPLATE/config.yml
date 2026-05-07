@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Question or discussion
+    url: https://github.com/DiogoSabec/FinAI/discussions
+    about: For questions, ideas, or general discussion (enable Discussions on the repo first).

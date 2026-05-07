@@ -1,38 +1,75 @@
-# Finance Dashboard
+<div align="center">
 
-A full-stack personal finance app with a React + Vite frontend and an Express + SQLite backend. It includes dashboards, account tracking, income and expense management, subscriptions, budget goals, CSV import, settings, and an optional Gemini-powered AI advisor.
+# FinAI
 
-## Stack
+**Personal finance dashboard with an optional AI advisor — your money, your machine.**
 
-- Frontend: React 19 + Vite
-- Backend: Node.js + Express
-- Database: SQLite via `sql.js`
-- AI: Google Gemini API (optional)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/Node-20%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
+[![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
+[![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)](https://expressjs.com)
+[![SQLite](https://img.shields.io/badge/SQLite-sql.js-003B57?logo=sqlite&logoColor=white)](https://sql.js.org)
+[![Electron](https://img.shields.io/badge/Electron-42-47848F?logo=electron&logoColor=white)](https://www.electronjs.org)
+[![Gemini](https://img.shields.io/badge/AI-Google%20Gemini-4285F4?logo=googlegemini&logoColor=white)](https://aistudio.google.com)
 
-## Prerequisites
+</div>
 
-- Node.js 20+ recommended
-- npm 10+ recommended
+---
 
-Tested in this workspace with:
+## Overview
 
-- Node.js `v24.14.1`
-- npm `11.11.0`
+FinAI is a local-first personal finance app: a React + Vite frontend, an Express + SQLite backend, and an optional Google Gemini chat that understands your data. Track accounts, income, expenses, subscriptions and budget goals — without ever sending a transaction to a third-party server.
 
-## Installation
+It runs in the browser **and** ships as a desktop app via Electron.
 
-From the project root:
+## Screenshots
+
+> _Coming soon — drop images in `docs/screenshots/` and update the paths below._
+
+| Dashboard | AI Advisor | CSV Import |
+| :---: | :---: | :---: |
+| ![Dashboard](docs/screenshots/dashboard.png) | ![AI Advisor](docs/screenshots/ai-advisor.png) | ![CSV Import](docs/screenshots/csv-import.png) |
+
+## Features
+
+- **Dashboard** — monthly overview with filtering
+- **Accounts** — multiple accounts with transfers between them
+- **Income / Expenses / Subscriptions** — month + search filtering, batch edit
+- **Budget Goals** — set monthly targets per category
+- **CSV Import** — bulk import Nubank statements (income + expenses) with AI-assisted category suggestions
+- **AI Advisor** — context-aware chat (Google Gemini) with Markdown rendering and history
+- **Backup & restore** — export/import the full SQLite database; reset on demand
+- **Themes** — light & dark mode with persistent preference
+- **Desktop app** — runs as a native app on macOS and Windows via Electron
+- **Local-first** — all data stays in `server/finances.db` on your machine
+
+## Tech Stack
+
+| Layer | Tech |
+| --- | --- |
+| Frontend | React 19, Vite, custom design system |
+| Backend | Node.js, Express, centralized validation |
+| Database | SQLite via [`sql.js`](https://sql.js.org) |
+| AI | Google Gemini API (optional) |
+| Desktop | Electron 42 + electron-builder |
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js **20+** (tested on `v24.14.1`)
+- npm **10+** (tested on `11.11.0`)
+
+### Install
 
 ```bash
+git clone https://github.com/DiogoSabec/FinAI.git
+cd FinAI
 npm run install:all
 ```
 
-That command installs:
-
-- the root dependencies used by the API and the combined dev workflow
-- the frontend dependencies inside [`client`](./client)
-
-## Environment Setup
+### Configure
 
 Create a `.env` file in the project root:
 
@@ -41,147 +78,102 @@ PORT=3001
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-Notes:
+- `PORT` is optional (defaults to `3001`).
+- `GEMINI_API_KEY` is optional — the app runs without it, but the AI Advisor will be disabled. Get a key from [Google AI Studio](https://aistudio.google.com/app/apikey).
 
-- `PORT` is optional. If omitted, the API defaults to `3001`.
-- `GEMINI_API_KEY` is optional. The app still runs without it, but the AI Advisor features will be unavailable.
-- The backend loads `.env` from the project root, not from the `client` or `server` folders.
-
-To get a Gemini key, create one in [Google AI Studio](https://aistudio.google.com/app/apikey).
-
-## Running The App
-
-Start the full app from the project root:
+### Run (web)
 
 ```bash
 npm run dev
 ```
 
-This starts:
+- API: http://localhost:3001
+- UI:  http://localhost:5173
 
-- the API on `http://localhost:3001`
-- the frontend on `http://localhost:5173`
-
-Then open:
-
-```text
-http://localhost:5173
-```
-
-The frontend talks to the backend through Vite's `/api` proxy.
-
-## Running Frontend And Backend Separately
-
-Start only the backend:
+### Run (desktop)
 
 ```bash
-npm run server
+npm run electron:dev
 ```
 
-Start only the frontend:
+### Build a desktop installer
 
 ```bash
-npm run client
+npm run dist:mac   # macOS .dmg (arm64 + x64)
+npm run dist:win   # Windows NSIS installer
+npm run dist:all   # both
 ```
 
-This is useful when you only want to work on one side of the app.
+Output goes to `release/`.
 
-## Build
+## Available Screens
 
-Create a production frontend build:
-
-```bash
-npm --prefix client run build
-```
-
-The built files are written to:
-
-```text
-client/dist
-```
-
-Important:
-
-- this project currently only has a frontend build script
-- you still run the backend separately with `npm run server`
-
-## Local Data Storage
-
-- The SQLite database file lives at `server/finances.db`.
-- It is created automatically on first run if it does not already exist.
-- The app persists data locally on the machine running the backend.
-
-## Useful URLs
-
-- App UI: `http://localhost:5173`
-- API health check: `http://localhost:3001/api/health`
+Dashboard · Accounts · Income · Expenses · Subscriptions · CSV Import · Budget Goals · AI Advisor · Settings
 
 ## Project Structure
 
 ```text
 .
-├── client/        # React + Vite frontend
-├── server/        # Express API and SQLite database setup
-├── package.json   # root scripts for full-stack development
-└── .env           # local environment variables
+├── client/          # React + Vite frontend
+│   └── src/
+│       ├── components/   # Dashboard, Accounts, Expenses, Income, …
+│       ├── hooks/        # useCurrency, useTheme
+│       └── utils/        # api, categories, csvNubank, themes
+├── server/          # Express API + SQLite setup
+│   └── routes/      # accounts, expenses, income, goals, subscriptions
+├── electron/        # Electron main process
+├── package.json     # root scripts
+└── .env             # local environment variables
 ```
+
+## Local Data Storage
+
+- Database file: `server/finances.db` (created on first run)
+- Backup / restore from **Settings → Backup**
+- Reset the database from **Settings → Reset**
+
+## Useful URLs
+
+- App UI: http://localhost:5173
+- API health: http://localhost:3001/api/health
 
 ## Troubleshooting
 
-### Port already in use
+<details>
+<summary><strong>Port already in use</strong></summary>
 
-If `3001` or `5173` is already in use, stop the conflicting process or change the port:
+Change the backend port via `PORT` in `.env`, or the frontend port in `client/vite.config.js`. If you change the frontend port, also update the allowed origins in `server/index.js` (currently `http://localhost:5173` and `http://localhost:5174`).
+</details>
 
-- backend port: update `PORT` in `.env`
-- frontend port: update `client/vite.config.js`
+<details>
+<summary><strong>AI Advisor says the API key is missing</strong></summary>
 
-If you change the frontend port, also update the allowed origins in `server/index.js`, because the backend currently allows only:
+Make sure your root `.env` contains `GEMINI_API_KEY=...` and restart the backend.
+</details>
 
-- `http://localhost:5173`
-- `http://localhost:5174`
+<details>
+<summary><strong>Frontend loads but API calls fail</strong></summary>
 
-### AI Advisor says the API key is missing
-
-Make sure your root `.env` contains:
-
-```env
-GEMINI_API_KEY=your_gemini_api_key_here
-```
-
-Then restart the backend.
-
-### The frontend loads but API calls fail
-
-Check that the backend is running on `http://localhost:3001`.
-
-You can verify it with:
+Confirm the backend is running:
 
 ```bash
 curl -sS http://localhost:3001/api/health
+# {"status":"ok","timestamp":"..."}
 ```
+</details>
 
-Expected response:
-
-```json
-{"status":"ok","timestamp":"..."}
-```
-
-### Fresh install issues
-
-If dependencies are missing or out of sync, rerun:
+<details>
+<summary><strong>Fresh install issues</strong></summary>
 
 ```bash
 npm run install:all
 ```
+</details>
 
-## Available Screens
+## Contributing
 
-- Dashboard
-- Accounts
-- Income
-- Expenses
-- Subscriptions
-- CSV Import
-- Budget Goals
-- AI Advisor
-- Settings
+Issues and pull requests are welcome. For larger changes, please open an issue first to discuss what you'd like to change. Bug reports and feature requests have templates under `.github/ISSUE_TEMPLATE/`.
+
+## License
+
+[MIT](LICENSE) © Diogo Sabec
