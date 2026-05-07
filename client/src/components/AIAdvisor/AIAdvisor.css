@@ -1,3 +1,7 @@
+.ai-page {
+  height: calc(100dvh - 40px);
+}
+
 .ai-quick-prompts {
   display: flex;
   flex-wrap: wrap;
@@ -15,11 +19,13 @@
   transition: background var(--transition), border-color var(--transition), color var(--transition), transform var(--transition);
 }
 
-.ai-quick-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  border-color: var(--border-hover);
-  background: rgba(var(--accent-rgb), 0.09);
-  color: var(--text-primary);
+@media (hover: hover) {
+  .ai-quick-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: var(--border-hover);
+    background: rgba(var(--accent-rgb), 0.09);
+    color: var(--text-primary);
+  }
 }
 
 .ai-chat-window {
@@ -228,15 +234,80 @@
 }
 
 @media (max-width: 768px) {
+  /* Chat fills the screen between top bar and bottom nav */
+  .ai-page {
+    height: calc(100dvh - var(--topbar-h) - var(--bottomnav-h) - var(--safe-bottom));
+    padding: 12px 14px 0;
+  }
+
+  .ai-page .page-header {
+    margin-bottom: 10px;
+  }
+
+  .ai-page .page-header h1 {
+    font-size: 1.4rem;
+  }
+
+  .ai-page .page-header p {
+    display: none;
+  }
+
+  /* Quick prompts: horizontal scroll instead of wrap */
+  .ai-quick-prompts {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    margin: 0 -14px 12px;
+    padding: 0 14px;
+    gap: 8px;
+    scrollbar-width: none;
+  }
+
+  .ai-quick-prompts::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ai-quick-btn {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+  }
+
   .ai-bubble {
-    max-width: 100%;
+    max-width: 92%;
+  }
+
+  .ai-bubble-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 11px;
   }
 
   .ai-messages {
-    padding: 18px;
+    padding: 14px;
+    gap: 14px;
   }
 
   .ai-input-bar {
-    padding: 16px;
+    position: sticky;
+    bottom: 0;
+    padding: 12px 12px 12px;
+    gap: 8px;
+    background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .ai-textarea {
+    min-height: 48px;
+  }
+
+  .ai-send-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
   }
 }

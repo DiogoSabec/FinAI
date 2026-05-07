@@ -3,6 +3,7 @@ import { api } from '../../utils/api.js';
 import { useCurrency } from '../../hooks/useCurrency.jsx';
 import { CATEGORIES, PAYMENT_METHODS } from '../../utils/categories.js';
 import { IconEdit, IconTrash, IconClose, IconArrowSwap, IconInfo, IconCard } from '../icons.jsx';
+import ActionSheet from '../shared/ActionSheet.jsx';
 
 const EMPTY = { description:'', amount:'', category:'Food', date: new Date().toISOString().slice(0,10), payment_method:'credit', notes:'', account_id: null, is_transfer: false, to_account_id: null, ignore_dashboard: false };
 
@@ -32,6 +33,8 @@ export default function Expenses() {
   const [bulkSaving, setBulkSaving] = useState(false);
   const [bulkSuggesting, setBulkSuggesting] = useState(false);
   const [bulkAiMessage, setBulkAiMessage] = useState('');
+  const [sheetItem, setSheetItem] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
 
   const load = () => {
     return Promise.all([api.get('/expenses'), api.get('/accounts')]).then(([exp, acc]) => {
@@ -388,6 +391,74 @@ export default function Expenses() {
               </tbody>
             </table>
           )}
+
+          {!loading && filtered.length > 0 && (
+            <ul className="list-card-view" aria-label="Expenses list">
+              {filtered.map(item => {
+                const cat = CATEGORIES.find(c => c.id === item.category);
+                const acct = accounts.find(a => a.id === item.account_id);
+                const isExpanded = expandedId === item.id;
+                return (
+                  <li
+                    key={item.id}
+                    className={`list-card ${selected.has(item.id) ? 'is-selected' : ''}`}
+                    onClick={() => {
+                      if (selectMode) handleSelect(item.id, false);
+                      else setExpandedId(prev => prev === item.id ? null : item.id);
+                    }}
+                  >
+                    {selectMode && (
+                      <span className="list-card-check" onClick={e => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${item.description}`}
+                          checked={selected.has(item.id)}
+                          onChange={(e) => handleSelect(item.id, e.nativeEvent.shiftKey)}
+                        />
+                      </span>
+                    )}
+                    <div className="list-card-body">
+                      <div className="list-card-row1">
+                        <span className="list-card-title">{item.description}</span>
+                        <span className="list-card-amount text-red">{fmt(item.amount)}</span>
+                      </div>
+                      <div className="list-card-meta">
+                        <span className="badge badge-muted">
+                          {cat?.icon} {cat?.label || item.category}
+                        </span>
+                        {acct && <span>· {acct.name}</span>}
+                        <span>· {item.date}</span>
+                        {item.is_transfer && <span className="badge badge-blue">Transfer</span>}
+                        {item.ignore_dashboard && !item.is_transfer && (
+                          <span className="badge badge-muted">Hidden</span>
+                        )}
+                      </div>
+                    </div>
+                    {!selectMode && (
+                      <button
+                        type="button"
+                        className="list-card-action"
+                        aria-label={`Actions for ${item.description}`}
+                        onClick={e => { e.stopPropagation(); setSheetItem(item); }}
+                      >
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+                          <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
+                        </svg>
+                      </button>
+                    )}
+                    {isExpanded && (item.notes || pmLabel(item.payment_method)) && (
+                      <div className="list-card-notes" onClick={e => e.stopPropagation()}>
+                        {item.notes && <div>{item.notes}</div>}
+                        <div style={{marginTop: item.notes ? 6 : 0, color:'var(--text-muted)'}}>
+                          Payment: {pmLabel(item.payment_method)}
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       </div>
 
@@ -615,6 +686,17 @@ export default function Expenses() {
           </div>
         </div>
       )}
+
+      <ActionSheet
+        open={!!sheetItem}
+        onClose={() => setSheetItem(null)}
+        title={sheetItem?.description}
+        actions={sheetItem ? [
+          { label: 'Edit',           icon: <IconEdit />,  onClick: () => openEdit(sheetItem) },
+          { label: 'Change category', icon: <IconCard />,  onClick: () => setQuickCatId(sheetItem.id), disabled: sheetItem.is_transfer },
+          { label: 'Delete', danger: true, icon: <IconTrash />, onClick: () => remove(sheetItem.id) },
+        ] : []}
+      />
     </div>
   );
 }

@@ -14,9 +14,37 @@
   transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
 }
 
-.sub-card:hover {
-  border-color: var(--border-hover);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
+@media (hover: hover) {
+  .sub-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--shadow-md), var(--shadow-glow);
+  }
+}
+
+@media (max-width: 768px) {
+  .sub-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .sub-card {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .sub-card-actions {
+    flex-wrap: wrap;
+  }
+
+  .sub-card-actions .btn {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .sub-card-actions .btn-icon {
+    flex: 0 0 auto;
+  }
 }
 
 .sub-card-inactive {

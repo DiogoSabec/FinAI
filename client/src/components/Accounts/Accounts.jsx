@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../../utils/api.js';
 import { useCurrency } from '../../hooks/useCurrency.jsx';
 import { IconEdit, IconTrash, IconClose, IconAccounts } from '../icons.jsx';
+import ActionSheet from '../shared/ActionSheet.jsx';
 
 const EMPTY = { name: '', type: 'Checking', balance: '' };
 
@@ -22,6 +23,7 @@ export default function Accounts() {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [sheetItem, setSheetItem] = useState(null);
 
   const load = () => api.get('/accounts').then(setItems).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
@@ -160,8 +162,48 @@ export default function Accounts() {
               </tbody>
             </table>
           )}
+
+          {!loading && items.length > 0 && (
+            <ul className="list-card-view" aria-label="Accounts list">
+              {items.map(item => (
+                <li key={item.id} className="list-card">
+                  <div className="list-card-body">
+                    <div className="list-card-row1">
+                      <span className="list-card-title">{item.name}</span>
+                      <span className={`list-card-amount ${item.type === 'Credit' ? 'text-red' : 'text-green'}`}>
+                        {fmt(item.balance)}
+                      </span>
+                    </div>
+                    <div className="list-card-meta">
+                      <span className="badge badge-accent">{item.type}</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="list-card-action"
+                    aria-label={`Actions for ${item.name}`}
+                    onClick={() => setSheetItem(item)}
+                  >
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+                      <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
+                    </svg>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
+
+      <ActionSheet
+        open={!!sheetItem}
+        onClose={() => setSheetItem(null)}
+        title={sheetItem?.name}
+        actions={sheetItem ? [
+          { label: 'Edit', icon: <IconEdit />, onClick: () => openEdit(sheetItem) },
+          { label: 'Delete', danger: true, icon: <IconTrash />, onClick: () => remove(sheetItem.id) },
+        ] : []}
+      />
 
       {deleteConfirm && (
         <div

@@ -77,7 +77,7 @@ export default function AIAdvisor() {
   const handleKey = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
 
   return (
-    <div className="page-content" style={{display:'flex', flexDirection:'column', height:'calc(100vh - 40px)'}}>
+    <div className="page-content ai-page" style={{display:'flex', flexDirection:'column'}}>
       <div className="page-header">
         <h1>✦ AI Advisor</h1>
         <p>Ask anything about your finances — powered by Gemini AI</p>

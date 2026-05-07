@@ -3,6 +3,7 @@ import { api } from '../../utils/api.js';
 import { useCurrency } from '../../hooks/useCurrency.jsx';
 import { RECURRENCE_OPTIONS } from '../../utils/categories.js';
 import { IconEdit, IconTrash, IconClose, IconArrowSwap, IconInfo } from '../icons.jsx';
+import ActionSheet from '../shared/ActionSheet.jsx';
 
 const EMPTY = { source:'', amount:'', date: new Date().toISOString().slice(0,10), recurrence:'one-time', notes:'', account_id: null, is_transfer: false, from_account_id: null, ignore_dashboard: false };
 
@@ -28,6 +29,8 @@ export default function Income() {
   const [bulkForm, setBulkForm] = useState({ recurrence: '', account_id: '', ignore_dashboard: '' });
   const [bulkFields, setBulkFields] = useState({ recurrence: false, account_id: false, ignore_dashboard: false });
   const [bulkSaving, setBulkSaving] = useState(false);
+  const [sheetItem, setSheetItem] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
 
   const load = () => {
     Promise.all([api.get('/income'), api.get('/accounts')]).then(([inc, acc]) => {
@@ -310,8 +313,80 @@ export default function Income() {
               </tbody>
             </table>
           )}
+
+          {!loading && filtered.length > 0 && (
+            <ul className="list-card-view" aria-label="Income list">
+              {filtered.map(item => {
+                const acct = accounts.find(a => a.id === item.account_id);
+                const isExpanded = expandedId === item.id;
+                return (
+                  <li
+                    key={item.id}
+                    className={`list-card ${selected.has(item.id) ? 'is-selected' : ''}`}
+                    onClick={() => {
+                      if (selectMode) handleSelect(item.id, false);
+                      else setExpandedId(prev => prev === item.id ? null : item.id);
+                    }}
+                  >
+                    {selectMode && (
+                      <span className="list-card-check" onClick={e => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${item.source}`}
+                          checked={selected.has(item.id)}
+                          onChange={(e) => handleSelect(item.id, e.nativeEvent.shiftKey)}
+                        />
+                      </span>
+                    )}
+                    <div className="list-card-body">
+                      <div className="list-card-row1">
+                        <span className="list-card-title">{item.source}</span>
+                        <span className="list-card-amount text-green">{fmt(item.amount)}</span>
+                      </div>
+                      <div className="list-card-meta">
+                        <span className="badge badge-blue">{item.recurrence}</span>
+                        {acct && <span>· {acct.name}</span>}
+                        <span>· {item.date}</span>
+                        {item.is_transfer && <span className="badge badge-blue">Transfer</span>}
+                        {item.ignore_dashboard && !item.is_transfer && (
+                          <span className="badge badge-muted">Hidden</span>
+                        )}
+                      </div>
+                    </div>
+                    {!selectMode && (
+                      <button
+                        type="button"
+                        className="list-card-action"
+                        aria-label={`Actions for ${item.source}`}
+                        onClick={e => { e.stopPropagation(); setSheetItem(item); }}
+                      >
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+                          <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
+                        </svg>
+                      </button>
+                    )}
+                    {isExpanded && item.notes && (
+                      <div className="list-card-notes" onClick={e => e.stopPropagation()}>
+                        {item.notes}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       </div>
+
+      <ActionSheet
+        open={!!sheetItem}
+        onClose={() => setSheetItem(null)}
+        title={sheetItem?.source}
+        actions={sheetItem ? [
+          { label: 'Edit', icon: <IconEdit />, onClick: () => openEdit(sheetItem) },
+          { label: 'Delete', danger: true, icon: <IconTrash />, onClick: () => remove(sheetItem.id) },
+        ] : []}
+      />
 
       {selectMode && selected.size > 0 && (
         <div className="bulk-bar" role="toolbar" aria-label="Bulk actions">

@@ -207,7 +207,25 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .dashboard-kpi {
+    padding: 16px 18px;
+  }
+
+  .dashboard-kpi-value {
+    font-size: 1.5rem;
+  }
+
+  .dashboard-kpi-primary .dashboard-kpi-value {
+    font-size: 1.85rem;
+  }
+
+  .dashboard-kpi-meta {
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 480px) {
   .dashboard-kpi-bar {
     grid-template-columns: 1fr;
   }
@@ -250,5 +268,14 @@
 
   .dash-pie-inner .recharts-responsive-container {
     width: 100% !important;
+  }
+
+  .dashboard-chart-card .card-body {
+    min-height: 240px;
+    padding: 18px;
+  }
+
+  .dashboard-filter {
+    width: 100%;
   }
 }
