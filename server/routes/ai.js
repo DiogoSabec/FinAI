@@ -32,7 +32,8 @@ const AI_CATEGORY_LIST = [
 
 const AI_CATEGORY_SET = new Set(AI_CATEGORY_LIST);
 const AI_CATEGORY_MAP = new Map(AI_CATEGORY_LIST.map((category) => [category.toLowerCase(), category]));
-const AI_SUGGESTION_CHUNK_SIZE = 30;
+const AI_SUGGESTION_CHUNK_SIZE = 25;
+const AI_SUGGESTION_FALLBACK_CHUNK_SIZE = 8;
 const AI_REQUEST_TIMEOUT_MS = 15000;
 const AI_CHAT_TIMEOUT_MS = 30000;
 const MAX_CHAT_MESSAGE_LENGTH = 2000;
@@ -150,44 +151,79 @@ function getHistoricalCategoryMap() {
 }
 
 function buildCategoryPrompt(entries) {
+  const numbered = entries
+    .map((entry, index) => `${index}. ${entry.cleanedDescription || entry.description || 'Imported transaction'} (R$ ${entry.amount})`)
+    .join('\n');
+
   return `You categorize bank transactions for a personal finance app.
-Choose exactly one category from this list:
+
+Allowed categories (use exactly one of these strings, in English, exactly as written):
 ${AI_CATEGORY_LIST.join(', ')}.
 
-Rules:
-- Return ONLY a JSON object.
-- Keep every transaction ID exactly as provided.
-- Use the category names exactly as written.
-- Ignore bank prefixes like "Compra no débito -" and random identifiers.
-- If the description is still unclear, use "Other".
-
 Category guide:
-- Food: restaurants, grocery stores, cafes, delivery, bakeries, markets.
+- Food: restaurants, grocery stores, cafes, delivery, bakeries, supermarkets (padaria, mercado, restaurante, lanchonete, ifood, rappi).
 - Housing: rent, utilities, home services, internet, phone bills, maintenance.
-- Transport: ride apps, fuel, parking, tolls, transit, vehicle services.
-- Health: pharmacies, hospitals, dentists, labs, clinics, gyms with a medical focus.
+- Transport: ride apps (uber, 99), fuel/posto, parking, tolls, transit, vehicle services.
+- Health: pharmacies (drogaria, farmacia), hospitals, dentists, labs, clinics, gyms.
 - Entertainment: bars, movies, games, events, hobbies, leisure.
-- Shopping: retail, ecommerce, clothes, electronics, home goods, marketplaces.
-- Subscriptions: recurring software, apps, streaming, memberships.
+- Shopping: retail, e-commerce, clothes, electronics, home goods, marketplaces (amazon, magalu, mercado livre, shopee).
+- Subscriptions: recurring software, apps, streaming (netflix, spotify, disney+), memberships.
 - Education: courses, books, tuition, schools, training.
 - Investments: brokerages, crypto, stocks, retirement contributions.
+- Other: only when the description is genuinely unclear.
+
+Rules:
+- Output an array with one object per transaction: { "i": <0-based index>, "c": <category> }.
+- Cover every index from 0 to ${entries.length - 1}, in order, no duplicates, no extras.
+- Use the English category strings above. Do not translate them.
+- Ignore bank prefixes like "Compra no débito -" and random identifiers.
 
 Transactions:
-${entries.map((entry) => `ID: ${entry.id}\nOriginal: ${entry.description}\nCleaned: ${entry.cleanedDescription}\nAmount: ${entry.amount}`).join('\n\n')}
+${numbered}`;
+}
 
-Example output:
-{
-  "${entries[0]?.id ?? '0'}": "Food"
-}`;
+const CATEGORY_RESPONSE_SCHEMA = {
+  type: 'array',
+  items: {
+    type: 'object',
+    properties: {
+      i: { type: 'integer' },
+      c: { type: 'string', enum: AI_CATEGORY_LIST },
+    },
+    required: ['i', 'c'],
+  },
+};
+
+function parseCategoryArray(text) {
+  const cleaned = String(text || '')
+    .replace(/```json/gi, '')
+    .replace(/```/g, '')
+    .trim();
+
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (initialError) {
+    const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
+    if (!arrayMatch) throw initialError;
+    parsed = JSON.parse(arrayMatch[0]);
+  }
+
+  if (!Array.isArray(parsed)) {
+    throw new Error('AI response was not an array');
+  }
+  return parsed;
 }
 
 async function requestGeminiCategoryChunk(entries, apiKey) {
   const geminiBody = {
     contents: [{ role: 'user', parts: [{ text: buildCategoryPrompt(entries) }] }],
     generationConfig: {
-      temperature: 0.1,
-      maxOutputTokens: 1024,
+      temperature: 0,
+      maxOutputTokens: 4096,
       responseMimeType: 'application/json',
+      responseSchema: CATEGORY_RESPONSE_SCHEMA,
+      thinkingConfig: { thinkingBudget: 0 },
     },
   };
 
@@ -206,23 +242,60 @@ async function requestGeminiCategoryChunk(entries, apiKey) {
   }
 
   const geminiData = await geminiRes.json();
-  const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+  const candidate = geminiData.candidates?.[0];
+  const text = candidate?.content?.parts?.map((p) => p.text).filter(Boolean).join('') || '';
+  const finishReason = candidate?.finishReason;
 
   if (!text) {
-    throw new Error('Empty response from AI');
+    throw new Error(`Empty response from AI (finishReason=${finishReason || 'unknown'})`);
   }
 
-  const parsed = parseAiJsonObject(text);
-  const suggestions = {};
+  let parsedArray;
+  try {
+    parsedArray = parseCategoryArray(text);
+  } catch (parseError) {
+    throw new Error(`Could not parse AI response (finishReason=${finishReason || 'unknown'}): ${parseError.message}`);
+  }
 
-  for (const entry of entries) {
-    const category = sanitizeSuggestedCategory(parsed[entry.id]);
-    if (category) {
-      suggestions[entry.id] = category;
-    }
+  const suggestions = {};
+  for (const item of parsedArray) {
+    const index = Number(item?.i);
+    if (!Number.isInteger(index) || index < 0 || index >= entries.length) continue;
+    const category = sanitizeSuggestedCategory(item?.c);
+    if (!category) continue;
+    const entry = entries[index];
+    if (entry) suggestions[entry.id] = category;
   }
 
   return suggestions;
+}
+
+// Run a chunk; on failure, fall back to smaller sub-chunks so a single bad
+// response doesn't cost us 25 suggestions in one go.
+async function requestCategoryChunkWithFallback(entries, apiKey) {
+  try {
+    return { suggestions: await requestGeminiCategoryChunk(entries, apiKey), error: null };
+  } catch (firstError) {
+    if (entries.length <= AI_SUGGESTION_FALLBACK_CHUNK_SIZE) {
+      return { suggestions: {}, error: firstError };
+    }
+
+    const subChunks = chunkArray(entries, AI_SUGGESTION_FALLBACK_CHUNK_SIZE);
+    const merged = {};
+    let lastError = null;
+    for (const subChunk of subChunks) {
+      try {
+        Object.assign(merged, await requestGeminiCategoryChunk(subChunk, apiKey));
+      } catch (subError) {
+        lastError = subError;
+      }
+    }
+
+    if (Object.keys(merged).length === 0) {
+      return { suggestions: {}, error: lastError || firstError };
+    }
+    return { suggestions: merged, error: null };
+  }
 }
 
 function todayLocalIso() {
@@ -797,17 +870,18 @@ router.post('/suggest-categories', async (req, res) => {
     const chunks = chunkArray(aiQueue, AI_SUGGESTION_CHUNK_SIZE);
 
     for (const [index, chunk] of chunks.entries()) {
-      try {
-        const chunkSuggestions = await requestGeminiCategoryChunk(chunk, apiKey);
-        for (const entry of chunk) {
-          const category = chunkSuggestions[entry.id];
-          if (!category) continue;
-          for (const originalId of entry.ids) {
-            suggestions[originalId] = category;
-            aiMatches++;
-          }
+      const { suggestions: chunkSuggestions, error } = await requestCategoryChunkWithFallback(chunk, apiKey);
+
+      for (const entry of chunk) {
+        const category = chunkSuggestions[entry.id];
+        if (!category) continue;
+        for (const originalId of entry.ids) {
+          suggestions[originalId] = category;
+          aiMatches++;
         }
-      } catch (error) {
+      }
+
+      if (error) {
         console.error(`Suggest categories chunk ${index + 1} failed:`, error);
         warnings.push(`Chunk ${index + 1} failed: ${error.message}`);
       }

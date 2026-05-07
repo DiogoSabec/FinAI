@@ -3,4 +3,6 @@ client/node_modules/
 .env
 server/finances.db
 dist/
+client/dist/
+release/
 .impeccable.md

@@ -10,11 +10,17 @@ import {
   RESET_CONFIRMATION_HEADER,
 } from './validation.js';
 
-dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env') });
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const app = express();
-const PORT = process.env.PORT || 3001;
-const ALLOWED_ORIGINS = new Set(['http://localhost:5173', 'http://localhost:5174']);
+const PORT = Number(process.env.PORT) || 3001;
+const IS_ELECTRON = process.env.FINAI_ELECTRON === '1';
+const ALLOWED_ORIGINS = new Set([
+  'http://localhost:5173',
+  'http://localhost:5174',
+  `http://localhost:${PORT}`,
+]);
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 app.disable('x-powered-by');
@@ -80,6 +86,14 @@ initDB().then(async () => {
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
+
+  if (IS_ELECTRON) {
+    const clientDist = process.env.FINAI_CLIENT_DIST || path.join(__dirname, '..', 'client', 'dist');
+    app.use(express.static(clientDist));
+    app.get(/^(?!\/api(\/|$)).*/, (req, res) => {
+      res.sendFile(path.join(clientDist, 'index.html'));
+    });
+  }
 
   app.use((req, res) => {
     res.status(404).json({ error: 'Route not found' });

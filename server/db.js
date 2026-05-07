@@ -7,12 +7,30 @@ const require = createRequire(import.meta.url);
 const initSqlJs = require('sql.js');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = path.join(__dirname, 'finances.db');
+const DB_PATH = process.env.FINAI_DB_PATH || path.join(__dirname, 'finances.db');
 
 let db;
 
+// In a packaged Electron app the wasm file may live inside an asar archive,
+// where sql.js's default fetch-based loader can't find it. Read it from disk
+// up front and hand it in directly.
+function loadWasmBinary() {
+  try {
+    const wasmPath = require.resolve('sql.js/dist/sql-wasm.wasm');
+    return fs.readFileSync(wasmPath);
+  } catch {
+    return null;
+  }
+}
+
 export async function initDB() {
-  const SQL = await initSqlJs();
+  const dbDir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+
+  const wasmBinary = loadWasmBinary();
+  const SQL = await initSqlJs(wasmBinary ? { wasmBinary } : {});
 
   if (fs.existsSync(DB_PATH)) {
     const filebuffer = fs.readFileSync(DB_PATH);

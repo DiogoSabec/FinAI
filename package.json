@@ -3,19 +3,79 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Personal Finance Dashboard with AI Advisor",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\" --names \"API,UI\" --prefix-colors \"cyan,magenta\"",
     "server": "node server/index.js",
     "client": "npm --prefix client run dev",
-    "install:all": "npm install && npm --prefix client install"
+    "install:all": "npm install && npm --prefix client install",
+    "build:client": "npm --prefix client run build",
+    "electron": "electron .",
+    "electron:dev": "concurrently --kill-others-on-fail --names \"API,UI,APP\" --prefix-colors \"cyan,magenta,yellow\" \"npm run server\" \"npm run client\" \"electron .\"",
+    "dist": "npm run build:client && electron-builder",
+    "dist:mac": "npm run build:client && electron-builder --mac",
+    "dist:win": "npm run build:client && electron-builder --win",
+    "dist:all": "npm run build:client && electron-builder --mac --win"
   },
   "dependencies": {
-    "sql.js": "^1.12.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.18.3"
+    "express": "^4.18.3",
+    "sql.js": "^1.12.0"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "electron": "^42.0.0",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.finai.app",
+    "productName": "FinAI",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "server/**/*",
+      "client/dist/**/*",
+      "package.json",
+      "!server/finances.db",
+      "!**/*.{md,map}",
+      "!**/.DS_Store"
+    ],
+    "asarUnpack": [
+      "node_modules/sql.js/dist/sql-wasm.wasm"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.finance",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false
+    }
   }
 }
