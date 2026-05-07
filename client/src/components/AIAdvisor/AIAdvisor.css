@@ -83,6 +83,109 @@
   border-color: rgba(var(--accent-rgb), 0.16);
 }
 
+.ai-markdown > *:first-child { margin-top: 0; }
+.ai-markdown > *:last-child  { margin-bottom: 0; }
+
+.ai-markdown p {
+  margin: 0 0 8px;
+  line-height: 1.55;
+}
+
+.ai-markdown strong { font-weight: 700; color: var(--text-primary); }
+.ai-markdown em     { font-style: italic; }
+
+.ai-markdown ul,
+.ai-markdown ol {
+  margin: 4px 0 8px;
+  padding-left: 22px;
+}
+
+.ai-markdown li {
+  margin: 2px 0;
+  line-height: 1.5;
+}
+
+.ai-markdown li > p { margin: 0; }
+
+.ai-markdown h1,
+.ai-markdown h2,
+.ai-markdown h3,
+.ai-markdown h4 {
+  margin: 12px 0 6px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+.ai-markdown h1 { font-size: 1.15rem; }
+.ai-markdown h2 { font-size: 1.05rem; }
+.ai-markdown h3 { font-size: 1rem; }
+.ai-markdown h4 { font-size: 0.95rem; }
+
+.ai-markdown a {
+  color: var(--text-accent, var(--accent));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ai-markdown code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(var(--accent-2-rgb), 0.12);
+  border: 1px solid rgba(var(--accent-2-rgb), 0.14);
+}
+
+.ai-markdown pre {
+  margin: 8px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(var(--accent-2-rgb), 0.12);
+  border: 1px solid rgba(var(--accent-2-rgb), 0.14);
+  overflow-x: auto;
+}
+
+.ai-markdown pre code {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.ai-markdown blockquote {
+  margin: 8px 0;
+  padding: 4px 12px;
+  border-left: 3px solid rgba(var(--accent-rgb), 0.4);
+  color: var(--text-secondary);
+}
+
+.ai-markdown table {
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+.ai-markdown th,
+.ai-markdown td {
+  border: 1px solid rgba(var(--accent-2-rgb), 0.18);
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.ai-markdown th {
+  background: rgba(var(--accent-2-rgb), 0.08);
+  font-weight: 600;
+}
+
+.ai-markdown hr {
+  border: 0;
+  border-top: 1px solid rgba(var(--accent-2-rgb), 0.18);
+  margin: 12px 0;
+}
+
 .ai-typing {
   display: inline-flex;
   gap: 6px;

@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { api } from '../../utils/api.js';
 import './AIAdvisor.css';
 
@@ -15,10 +17,21 @@ function MessageBubble({ msg }) {
   return (
     <div className={`ai-bubble ai-bubble-${msg.role}`}>
       {msg.role === 'assistant' && <div className="ai-bubble-avatar">✦</div>}
-      <div className="ai-bubble-text">
-        {msg.content.split('\n').map((line, i) => (
-          <React.Fragment key={i}>{line}{i < msg.content.split('\n').length - 1 && <br/>}</React.Fragment>
-        ))}
+      <div className="ai-bubble-text ai-markdown">
+        {msg.role === 'assistant' ? (
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              a: ({ node, ...props }) => <a {...props} target="_blank" rel="noreferrer" />,
+            }}
+          >
+            {msg.content}
+          </ReactMarkdown>
+        ) : (
+          msg.content.split('\n').map((line, i, arr) => (
+            <React.Fragment key={i}>{line}{i < arr.length - 1 && <br/>}</React.Fragment>
+          ))
+        )}
       </div>
       {msg.role === 'user' && <div className="ai-bubble-avatar ai-bubble-avatar-user">👤</div>}
     </div>
@@ -42,10 +55,14 @@ export default function AIAdvisor() {
     const msg = text || input.trim();
     if (!msg || loading) return;
     setInput('');
+    const priorHistory = messages
+      .slice(1)
+      .slice(-10)
+      .map(({ role, content }) => ({ role, content }));
     setMessages(prev => [...prev, { role: 'user', content: msg }]);
     setLoading(true);
     try {
-      const res = await api.post('/ai/chat', { message: msg });
+      const res = await api.post('/ai/chat', { message: msg, history: priorHistory });
       setMessages(prev => [...prev, { role: 'assistant', content: res.reply }]);
     } catch (e) {
       if (e.message.includes('not configured') || e.message.includes('503')) {
